@@ -53,8 +53,8 @@ export class ScanWorker extends WorkerHost {
     const detailLinks = await strategy.runListing(log, targetUrl);
 
     if (detailLinks.length === 0) {
-        log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);
-        return;
+      log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);
+      return;
     }
 
     // 1. Prepara i job figli (DetailWorker)
@@ -67,10 +67,10 @@ export class ScanWorker extends WorkerHost {
         backoff: { type: 'exponential', delay: 1000 },
         removeOnComplete: true,
         removeOnFail: 10,
+        delay: Math.floor(Math.random() * 30000),
       }
     }));
 
-    // 2. Crea il flow: 1 job di riepilogo che dipende dai job figli
     await this.flowProducer.add({
       name: `summary-${strategyId}`,
       queueName: SUMMARY_QUEUE_NAME,
@@ -94,6 +94,9 @@ export class ScanWorker extends WorkerHost {
     const logMsg = `❌ ERRORE ScanWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;
     this.logger.error(logMsg, err.stack);
     this.logService.add(logMsg);
-    this.notificationService.sendNotification(logMsg);
+
+    // NOTIFICA AGGIORNATA: Messaggio più chiaro per l'utente
+    const notifyMsg = `❌ ERRORE CRITICO: La scansione per [${job.data.strategyId}] non è potuta iniziare: ${err.message}. L'intero processo per questa strategia è fallito.`;
+    this.notificationService.sendNotification(notifyMsg);
   }
 }

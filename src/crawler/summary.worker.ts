@@ -31,8 +31,8 @@ export class SummaryWorker extends WorkerHost {
   async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
     const { strategyId, isCron, totalChildren } = job.data;
     const log = (message: string) => {
-        this.logger.log(message);
-        this.logService.add(message);
+      this.logger.log(message);
+      this.logService.add(message);
     }
 
     log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
@@ -46,7 +46,7 @@ export class SummaryWorker extends WorkerHost {
 
     const createdItems: Concorso[] = [];
     const updatedItems: Concorso[] = [];
-    const unchangedItems: Concorso[] = []; // NUOVO
+    const unchangedItems: Concorso[] = [];
 
     // 3. Smista i risultati
     for (const result of completedResults) {
@@ -72,30 +72,40 @@ export class SummaryWorker extends WorkerHost {
 
     if (createdItems.length > 0) {
       summaryMessage += `*✅ NUOVI CONCORSI (${createdItems.length}):*\n`;
-      summaryMessage += createdItems.map(c =>
-        `- ${c.title} (Scade: ${new Date(c.endDate).toLocaleDateString('it-IT')})`
-      ).join('\n');
+      summaryMessage += createdItems.map(c => {
+          const shortDesc = c.description.substring(0, 80).replace(/\s+$/, '') + '...';
+
+          return `*${c.title}* (${c.brand})\n` +
+            `_${shortDesc}_\n` +
+            `[Regolamento](${c.rulesUrl}) | [Fonte](${c.source})`;
+        }
+      ).join('\n\n'); // <-- Ecco il join con riga vuota
       summaryMessage += `\n\n`;
     }
 
     if (updatedItems.length > 0) {
       summaryMessage += `*🔄 CONCORSI AGGIORNATI (${updatedItems.length}):*\n`;
-      summaryMessage += updatedItems.map(c =>
-        `- ${c.title} (Scade: ${new Date(c.endDate).toLocaleDateString('it-IT')})`
-      ).join('\n');
+      summaryMessage += updatedItems.map(c => {
+          const shortDesc = c.description.substring(0, 80).replace(/\s+$/, '') + '...';
+
+          return `*${c.title}* (${c.brand})\n` +
+            `_${shortDesc}_\n` +
+            `[Regolamento](${c.rulesUrl}) | [Fonte](${c.source})`;
+        }
+      ).join('\n\n'); // <-- Ecco il join con riga vuota
       summaryMessage += `\n\n`;
     }
 
     if (unchangedItems.length > 0) {
-       summaryMessage += `*ℹ️ CONCORSI INVARIATI (${unchangedItems.length})*\n\n`;
+      summaryMessage += `*ℹ️ CONCORSI INVARIATI (${unchangedItems.length})*\n\n`;
     }
 
     if (createdItems.length === 0 && updatedItems.length === 0 && failedCount === 0) {
-        summaryMessage += `ℹ️ Nessun concorso nuovo o aggiornato. Tutto sincronizzato.\n\n`;
+      summaryMessage += `ℹ️ Nessun concorso nuovo o aggiornato. Tutto sincronizzato.\n\n`;
     }
 
     if (failedCount > 0) {
-        summaryMessage += `*❌ ATTENZIONE: ${failedCount} (su ${totalChildren}) job falliti.*\n(Controllare i log per i dettagli)\n\n`;
+      summaryMessage += `*❌ ATTENZIONE: ${failedCount} (su ${totalChildren}) job falliti.*\n(Controllare i log per i dettagli)\n\n`;
     }
 
     summaryMessage += `*Totale:* ${createdItems.length} nuovi, ${updatedItems.length} aggiornati, ${unchangedItems.length} invariati, ${failedCount} falliti.`;
@@ -104,7 +114,7 @@ export class SummaryWorker extends WorkerHost {
     await this.notificationService.sendNotification(summaryMessage, heroImageUrl);
 
     if (isCron) {
-        log(`[${strategyId}] ha completato la sua parte di CRON.`);
+      log(`[${strategyId}] ha completato la sua parte di CRON.`);
     }
   }
 

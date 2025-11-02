@@ -4,7 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="" />
+    <list default="true" id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/scan.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/scan.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

@@ -39,7 +39,8 @@ export class CrawlerService implements OnModuleDestroy {
     this.logger.warn('--- CRON JOB AVVIATO ---');
     const msg = '--- 🏁 CRON JOB AVVIATO (schedulato) ---';
     this.logService.add(msg);
-    this.notificationService.sendNotification(msg);
+    // NOTIFICA RIMOSSA: Non inviamo più una notifica all'avvio.
+    // this.notificationService.sendNotification(msg);
     await this.logService.clear();
     await this.startCrawl(true);
   }
@@ -48,7 +49,8 @@ export class CrawlerService implements OnModuleDestroy {
     this.logger.log('--- CRAWL FORZATO AVVIATO ---');
     const msg = '--- 🚀 CRAWL FORZATO AVVIATO (manuale) ---';
     this.logService.add(msg);
-    this.notificationService.sendNotification(msg);
+    // NOTIFICA RIMOSSA: Non inviamo più una notifica all'avvio.
+    // this.notificationService.sendNotification(msg);
     await this.logService.clear();
     await this.startCrawl(false); // Non attende il completamento
     return { message: 'Crawl avviato. I task sono stati aggiunti alla coda.' };
@@ -63,7 +65,7 @@ export class CrawlerService implements OnModuleDestroy {
       const msg = '❌ ERRORE: Nessuna strategia attiva in .env (ACTIVE_STRATEGIES).';
       this.logger.warn(msg);
       this.logService.add(msg);
-      this.notificationService.sendNotification(msg);
+      this.notificationService.sendNotification(msg); // Questa notifica di errore resta
       return;
     }
 
@@ -116,7 +118,10 @@ export class CrawlerService implements OnModuleDestroy {
 
       this.logger.log(summaryMsg);
       this.logService.add(summaryMsg);
-      this.notificationService.sendNotification(summaryMsg);
+
+      // NOTIFICA RIMOSSA: Questa notifica era tecnica e confusionaria.
+      // L'utente riceverà il report finale dal SummaryWorker.
+      // this.notificationService.sendNotification(summaryMsg);
     }
   }
 

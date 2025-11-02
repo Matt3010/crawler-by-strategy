@@ -28,10 +28,19 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
   private readonly logger = new Logger(DimmiCosaCerchiStrategy.name);
 
   // Rispettiamo robots.txt (visto in chat precedente)
-  private readonly MAX_PAGES_TO_SCRAPE = 1;
+  private readonly MAX_PAGES_TO_SCRAPE = 6;
 
   // --- LOGICA PROXY VERCEL ---
   private readonly proxyUrl: string;
+
+  // --- MODIFICA INIZIO ---
+  /**
+   * Helper per creare una pausa (usato per il Jitter)
+   */
+  private delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  // --- MODIFICA FINE ---
 
   constructor(private readonly configService: ConfigService) {
     this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');
@@ -52,16 +61,26 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
   }
 
   /**
-   * Helper per fetchare (MODIFICATO per usare il proxy Vercel)
+   * Helper per fetchare (MODIFICATO per usare il proxy Vercel E JITTER)
    */
   private async fetchHtml(targetUrl: string): Promise<string> {
     if (!this.proxyUrl) {
       throw new Error('Proxy URL non configurato.');
     }
 
+    // --- MODIFICA INIZIO ---
+    // Aggiungiamo un "jitter" (pausa casuale) tra 500ms e 2500ms
+    // per rendere le richieste meno ritmiche.
+    const randomDelay = Math.floor(Math.random() * 2000) + 500;
+    await this.delay(randomDelay);
+    // --- MODIFICA FINE ---
+
     // Costruiamo l'URL del proxy passando l'URL target come parametro
     const fetchUrl = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
-    console.log(`Fetching ${fetchUrl}`);
+
+    // --- MODIFICA INIZIO (log aggiornato) ---
+    console.log(`Fetching ${fetchUrl} (dopo ${randomDelay}ms di attesa)`);
+    // --- MODIFICA FINE ---
 
     try {
       // Chiamiamo il nostro proxy Vercel
@@ -144,10 +163,10 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
 
     let rulesUrl = null;
     $('.entry-content a').each((i, el) => {
-        if ($(el).text().toLowerCase().includes('regolamento')) {
-            rulesUrl = $(el).attr('href');
-            return false;
-        }
+      if ($(el).text().toLowerCase().includes('regolamento')) {
+        rulesUrl = $(el).attr('href');
+        return false;
+      }
     });
 
     const contentText = $('.entry-content').text() || '';
@@ -157,12 +176,12 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
     const imageUrl = $('meta[name="twitter:image"]').attr('content') || $('meta[property="og:image"]').attr('content');
 
     if (imageUrl) {
-        try {
-            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
-            images.push(absoluteUrl);
-        } catch (e) {
-            log(`[${this.getStrategyId()}] URL immagine non valido: ${imageUrl}`);
-        }
+      try {
+        const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
+        images.push(absoluteUrl);
+      } catch (e) {
+        log(`[${this.getStrategyId()}] URL immagine non valido: ${imageUrl}`);
+      }
     }
     // --- Fine Estrazione Immagine ---
 
@@ -172,13 +191,13 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
 
     let match = contentText.match(/dal (\d+°? \w+ \d{4})\s+al\s+(\d+°? \w+ \d{4})/i);
     if (match && match[1] && match[2]) {
-        startDateStr = parseDateString(match[1]);
-        endDateStr = parseDateString(match[2]);
+      startDateStr = parseDateString(match[1]);
+      endDateStr = parseDateString(match[2]);
     } else {
-        match = contentText.match(/(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i);
-        if (match && match[2]) {
-            endDateStr = parseDateString(match[2]);
-        }
+      match = contentText.match(/(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i);
+      if (match && match[2]) {
+        endDateStr = parseDateString(match[2]);
+      }
     }
 
     const today = new Date().toISOString().split('T')[0];

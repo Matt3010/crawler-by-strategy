@@ -143,24 +143,6 @@ export class DetailWorker extends WorkerHost {
     return { status: 'created', concorso: saved };
   }
 
-  // --- Altri metodi (standard CRUD) ---
-
-  async findAll(): Promise<Concorso[]> {
-    return this.concorsoRepository.find({
-      order: {
-        endDate: 'ASC',
-      },
-    });
-  }
-
-  async findOne(id: string): Promise<Concorso> {
-    return this.concorsoRepository.findOneBy({ id });
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.concorsoRepository.delete(id);
-  }
-
   // --- Gestore Errori Worker ---
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error) {
