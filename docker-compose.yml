@@ -1,0 +1,58 @@
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: concorsi-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: concorsi-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    container_name: concorsi-backend
+    build: .
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ACTIVE_STRATEGIES: ${ACTIVE_STRATEGIES}
+      PORT: 3000
+      # Aggiunte variabili Notifica
+      NOTIFICATION_STRATEGIES: ${NOTIFICATION_STRATEGIES}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+
+      # --- AGGIUNTO: Variabile Proxy ---
+      MY_PROXY_URL: ${MY_PROXY_URL}
+volumes:
+  postgres_data:
+    driver: local
