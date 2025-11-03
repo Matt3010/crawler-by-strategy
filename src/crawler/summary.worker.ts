@@ -3,126 +3,76 @@ import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { LogService } from 'src/log/log.service';
 import { NotificationService } from 'src/notification/notification.service';
-import { Concorso } from 'src/concorsi/entities/concorso.entity';
 import { SUMMARY_QUEUE_NAME } from './crawler.constants';
-import { CrawlStatus } from 'src/concorsi/concorsi.service';
+import {
+    ICrawlerStrategy,
+    ProcessResult,
+} from './strategies/crawler.strategy.interface';
+import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
 
-// Tipo di ritorno atteso dal DetailWorker
-type DetailJobResult = {
-  status: CrawlStatus;
-  concorso: Concorso;
-};
+type DetailJobResult = ProcessResult;
 
 @Processor(SUMMARY_QUEUE_NAME)
 @Injectable()
 export class SummaryWorker extends WorkerHost {
-  private readonly logger = new Logger(SummaryWorker.name);
+    private readonly logger = new Logger(SummaryWorker.name);
+    private strategies: Map<string, ICrawlerStrategy> = new Map();
 
-  constructor(
-    private readonly logService: LogService,
-    private readonly notificationService: NotificationService,
-  ) {
-    super();
-  }
-
-  /**
-   * Esegue il riepilogo DOPO che tutti i job figli (DetailWorker) sono completati.
-   */
-  async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
-    const { strategyId, isCron, totalChildren } = job.data;
-    const log = (message: string) => {
-      this.logger.log(message);
-      this.logService.add(message);
+    constructor(
+        private readonly logService: LogService,
+        private readonly notificationService: NotificationService,
+        private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,
+    ) {
+        super();
+        this.strategies.set(
+            this.dimmicosacerchi.getStrategyId(),
+            this.dimmicosacerchi,
+        );
     }
 
-    log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
-
-    // 1. Usa getChildrenValues() per ottenere i *risultati* dei job completati.
-    const completedValues = await job.getChildrenValues<DetailJobResult>();
-    const completedResults = Object.values(completedValues);
-
-    // 2. Calcola i falliti
-    const failedCount = totalChildren - completedResults.length;
-
-    const createdItems: Concorso[] = [];
-    const updatedItems: Concorso[] = [];
-    const unchangedItems: Concorso[] = [];
-
-    // 3. Smista i risultati
-    for (const result of completedResults) {
-      if (result.status === 'created') {
-        createdItems.push(result.concorso);
-      } else if (result.status === 'updated') {
-        updatedItems.push(result.concorso);
-      } else if (result.status === 'unchanged') {
-        unchangedItems.push(result.concorso);
-      }
-    }
-
-    // Determina l'immagine "eroe"
-    let heroImageUrl: string | undefined = undefined;
-    if (createdItems.length > 0 && createdItems[0].images?.length > 0) {
-      heroImageUrl = createdItems[0].images[0];
-    } else if (updatedItems.length > 0 && updatedItems[0].images?.length > 0) {
-      heroImageUrl = updatedItems[0].images[0];
-    }
-
-    // Costruisci il messaggio di riepilogo
-    let summaryMessage = `*Riepilogo Scansione [${strategyId}]*\n\n`;
-
-    if (createdItems.length > 0) {
-      summaryMessage += `*✅ NUOVI CONCORSI (${createdItems.length}):*\n`;
-      summaryMessage += createdItems.map(c => {
-          const shortDesc = c.description.substring(0, 80).replace(/\s+$/, '') + '...';
-
-          return `*${c.title}* (${c.brand})\n` +
-            `_${shortDesc}_\n` +
-            `[Regolamento](${c.rulesUrl}) | [Fonte](${c.source})`;
+    async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
+        const { strategyId, isCron, totalChildren } = job.data;
+        const log = (message: string) => {
+            this.logger.log(message);
+            this.logService.add(message);
         }
-      ).join('\n\n'); // <-- Ecco il join con riga vuota
-      summaryMessage += `\n\n`;
-    }
 
-    if (updatedItems.length > 0) {
-      summaryMessage += `*🔄 CONCORSI AGGIORNATI (${updatedItems.length}):*\n`;
-      summaryMessage += updatedItems.map(c => {
-          const shortDesc = c.description.substring(0, 80).replace(/\s+$/, '') + '...';
+        log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
 
-          return `*${c.title}* (${c.brand})\n` +
-            `_${shortDesc}_\n` +
-            `[Regolamento](${c.rulesUrl}) | [Fonte](${c.source})`;
+        const strategy = this.strategies.get(strategyId);
+        if (!strategy) {
+            const errorMsg = `❌ ERRORE CRITICO: Strategia [${strategyId}] non trovata nel SummaryWorker. Impossibile generare il riepilogo.`;
+            log(errorMsg);
+            this.notificationService.sendNotification(errorMsg);
+            return;
         }
-      ).join('\n\n'); // <-- Ecco il join con riga vuota
-      summaryMessage += `\n\n`;
+
+        const completedValues = await job.getChildrenValues<DetailJobResult>();
+        const completedResults = Object.values(completedValues);
+        const failedCount = totalChildren - completedResults.length;
+
+        const targetedNotification = strategy.formatSummary(
+            completedResults,
+            totalChildren,
+            failedCount,
+            strategyId,
+        );
+
+        log(targetedNotification.payload.message);
+        await this.notificationService.sendTargetedNotification(
+            targetedNotification
+        );
+
+        if (isCron) {
+            log(`[${strategyId}] ha completato la sua parte di CRON.`);
+        }
     }
 
-    if (unchangedItems.length > 0) {
-      summaryMessage += `*ℹ️ CONCORSI INVARIATI (${unchangedItems.length})*\n\n`;
+    @OnWorkerEvent('failed')
+    onFailed(job: Job, err: Error) {
+        const logMsg = `❌ ERRORE CRITICO SummaryWorker: Job [${job.id}] fallito: ${err.message}`;
+        this.logger.error(logMsg, err.stack);
+        this.logService.add(logMsg);
+        this.notificationService.sendNotification(logMsg);
     }
-
-    if (createdItems.length === 0 && updatedItems.length === 0 && failedCount === 0) {
-      summaryMessage += `ℹ️ Nessun concorso nuovo o aggiornato. Tutto sincronizzato.\n\n`;
-    }
-
-    if (failedCount > 0) {
-      summaryMessage += `*❌ ATTENZIONE: ${failedCount} (su ${totalChildren}) job falliti.*\n(Controllare i log per i dettagli)\n\n`;
-    }
-
-    summaryMessage += `*Totale:* ${createdItems.length} nuovi, ${updatedItems.length} aggiornati, ${unchangedItems.length} invariati, ${failedCount} falliti.`;
-
-    log(summaryMessage);
-    await this.notificationService.sendNotification(summaryMessage, heroImageUrl);
-
-    if (isCron) {
-      log(`[${strategyId}] ha completato la sua parte di CRON.`);
-    }
-  }
-
-  @OnWorkerEvent('failed')
-  onFailed(job: Job, err: Error) {
-    const logMsg = `❌ ERRORE CRITICO SummaryWorker: Job [${job.id}] fallito: ${err.message}`;
-    this.logger.error(logMsg, err.stack);
-    this.logService.add(logMsg);
-    this.notificationService.sendNotification(logMsg);
-  }
 }

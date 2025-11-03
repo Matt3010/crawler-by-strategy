@@ -1,8 +1,9 @@
-/**
- * Definisce il payload per una notifica.
- * Può contenere un messaggio di testo e un URL opzionale per un'immagine.
- */
 export interface NotificationPayload {
-  message: string;
-  imageUrl?: string;
+    message: string;
+    imageUrl?: string;
+}
+
+export interface TargetedNotification {
+    payload: NotificationPayload;
+    channels: string[] | null;
 }

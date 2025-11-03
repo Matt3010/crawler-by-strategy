@@ -1,16 +1,11 @@
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Job, FlowProducer } from 'bullmq';
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
-import { LogService } from 'src/log/log.service';
-import { NotificationService } from 'src/notification/notification.service';
-import {
-  SCAN_QUEUE_NAME,
-  DETAIL_QUEUE_NAME,
-  SUMMARY_QUEUE_NAME,
-  FLOW_PRODUCER
-} from './crawler.constants';
+import {OnWorkerEvent, Processor, WorkerHost} from '@nestjs/bullmq';
+import {FlowProducer, Job} from 'bullmq';
+import {Inject, Injectable, Logger} from '@nestjs/common';
+import {ICrawlerStrategy} from './strategies/crawler.strategy.interface';
+import {DimmiCosaCerchiStrategy} from './strategies/dimmi-cosa-cerchi-strategy.service';
+import {LogService} from 'src/log/log.service';
+import {NotificationService} from 'src/notification/notification.service';
+import {DETAIL_QUEUE_NAME, FLOW_PRODUCER, SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME} from './crawler.constants';
 
 @Processor(SCAN_QUEUE_NAME)
 @Injectable()
@@ -57,7 +52,6 @@ export class ScanWorker extends WorkerHost {
       return;
     }
 
-    // 1. Prepara i job figli (DetailWorker)
     const childrenJobs = detailLinks.map(link => ({
       name: 'scrape-detail',
       data: { strategyId, link },
@@ -76,7 +70,7 @@ export class ScanWorker extends WorkerHost {
       queueName: SUMMARY_QUEUE_NAME,
       data: {
         strategyId: strategyId,
-        isCron: isCron, // Passa l'info se è un cron job
+        isCron: isCron,
         totalChildren: childrenJobs.length
       },
       opts: {
