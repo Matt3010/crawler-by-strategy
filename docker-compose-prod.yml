@@ -53,6 +53,7 @@ services:
       ACTIVE_STRATEGIES: ${ACTIVE_STRATEGIES}
       PORT: 3000
       NOTIFICATION_STRATEGIES: ${NOTIFICATION_STRATEGIES}
+      DIMMICOSACERCHI_NOTIFY_CHANNELS: ${DIMMICOSACERCHI_NOTIFY_CHANNELS}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
       MY_PROXY_URL: ${MY_PROXY_URL}
@@ -65,9 +66,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
-    # --- AGGIUNTO: Dice a Watchtower di aggiornare solo i container con etichetta ---
     environment:
       WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: 600
 
 volumes:
   postgres_data:

@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="removed som files from git">
-      <change beforePath="$PROJECT_DIR$/.dockerignore" beforeDir="false" afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="updated gitignore and dockerignore">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose-prod.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,6 +48,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
+    "SONARLINT_PRECOMMIT_ANALYSIS": "true",
     "git-widget-placeholder": "main",
     "last_opened_file_path": "/Users/matteoscanferla/Desktop/backend-concorsi",
     "node.js.detected.package.eslint": "true",
@@ -75,7 +76,7 @@
       <option name="presentableId" value="Default" />
       <updated>1762244727055</updated>
       <workItem from="1762244728076" duration="2476000" />
-      <workItem from="1762247240035" duration="125000" />
+      <workItem from="1762247240035" duration="285000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -93,7 +94,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762246821013</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="updated gitignore and dockerignore">
+      <option name="closed" value="true" />
+      <created>1762247384941</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1762247384941</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -102,6 +111,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="added types where possible, any should be checked and changed with a specific type" />
     <MESSAGE value="removed som files from git" />
-    <option name="LAST_COMMIT_MESSAGE" value="removed som files from git" />
+    <MESSAGE value="updated gitignore and dockerignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated gitignore and dockerignore" />
   </component>
 </project>
