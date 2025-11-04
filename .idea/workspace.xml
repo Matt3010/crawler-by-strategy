@@ -4,33 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="added types where possible, any should be checked and changed with a specific type">
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Changes.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Changes/shelved.patch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25,_09_10_[Changes]/shelved.patch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25__09_10__Changes_.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert_[Changes]/shelved.patch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert__Changes_.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/crawl-concorso.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/dto/crawl-concorso.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/create-concorso.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/dto/create-concorso.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/concorsi/entities/concorso.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/entities/concorso.entity.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/scan.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/scan.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log/log.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/log/log.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/notification.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/notification.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/strategies/notification.strategy.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/notification.strategy.interface.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" afterDir="false" />
-    </list>
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="added types where possible, any should be checked and changed with a specific type" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -90,8 +64,17 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1762244727055</updated>
-      <workItem from="1762244728076" duration="1698000" />
+      <workItem from="1762244728076" duration="2013000" />
     </task>
+    <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
+      <option name="closed" value="true" />
+      <created>1762246447461</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1762246447461</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
