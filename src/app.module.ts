@@ -40,8 +40,8 @@ import { NotificationModule } from './notification/notification.module';
       }),
     }),
 
-    LogModule, // Modulo di Log (globale)
-    NotificationModule, // Modulo Notifiche (globale)
+    LogModule,
+    NotificationModule,
     ConcorsiModule,
     CrawlerModule,
   ],

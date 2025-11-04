@@ -6,7 +6,7 @@ import { NotificationPayload, TargetedNotification } from './notification.types'
 
 @Injectable()
 export class NotificationService {
-    private readonly logger = new Logger(NotificationService.name);
+    private readonly logger: Logger = new Logger(NotificationService.name);
     private activeStrategies: INotificationStrategy[] = [];
     private activeStrategiesMap: Map<string, INotificationStrategy> = new Map();
 
@@ -17,14 +17,14 @@ export class NotificationService {
         this.buildStrategyList();
     }
 
-    private buildStrategyList() {
+    private buildStrategyList(): void {
         const allStrategies: Record<string, INotificationStrategy> = {
             'telegram': this.telegramStrategy,
         };
 
-        const activeStrategyIds = (this.configService.get<string>('NOTIFICATION_STRATEGIES') || '')
+        const activeStrategyIds: string[] = (this.configService.get<string>('NOTIFICATION_STRATEGIES') || '')
             .split(',')
-            .map(s => s.trim().toLowerCase())
+            .map((s: string): string => s.trim().toLowerCase())
             .filter(Boolean);
 
         for (const id of activeStrategyIds) {

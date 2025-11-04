@@ -9,11 +9,11 @@ export class CrawlConcorsoDto {
   @IsUrl() source: string;
   @IsString() @IsOptional() description?: string;
 
-  @Type(() => Date)
+  @Type((): DateConstructor => Date)
   @IsDate()
   startDate: Date;
 
-  @Type(() => Date)
+  @Type((): DateConstructor => Date)
   @IsDate()
   endDate: Date;
 

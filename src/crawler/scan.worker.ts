@@ -10,7 +10,7 @@ import {DETAIL_QUEUE_NAME, FLOW_PRODUCER, SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME} f
 @Processor(SCAN_QUEUE_NAME)
 @Injectable()
 export class ScanWorker extends WorkerHost {
-  private readonly logger = new Logger(ScanWorker.name);
+  private readonly logger: Logger = new Logger(ScanWorker.name);
   private strategies: Map<string, ICrawlerStrategy> = new Map();
 
   constructor(
@@ -23,36 +23,55 @@ export class ScanWorker extends WorkerHost {
     this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);
   }
 
-  private createLogger = (jobId: string | number) => {
-    return (message: string) => {
+  private createLogger: (jobId: (string | number)) => (message: string) => void = (jobId: string | number): (message: string) => void => {
+    return (message: string): void => {
       const logMsg = `[Job ${jobId}] ${message}`;
       this.logger.log(logMsg);
       this.logService.add(logMsg);
     };
   }
 
-  /**
-   * AGGIORNATO: Non attende, crea un Flow con un job di riepilogo
-   */
   async process(job: Job<{ strategyId: string, isCron: boolean }>): Promise<void> {
-    const log = this.createLogger(job.id || 'scan');
+    const log: (message: string) => void = this.createLogger(job.id || 'scan');
     const { strategyId, isCron } = job.data;
     log(`Ricevuto job di scansione per [${strategyId}]...`);
 
-    const strategy = this.strategies.get(strategyId);
+    const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
     if (!strategy) throw new Error(`Strategia "${strategyId}" non trovata.`);
 
-    const targetUrl = strategy.getBaseUrl();
+    const targetUrl: string = strategy.getBaseUrl();
     if (!targetUrl) throw new Error(`Nessun URL base definito per [${strategyId}]`);
 
-    const detailLinks = await strategy.runListing(log, targetUrl);
+    const detailLinks: string[] = await strategy.runListing(log, targetUrl);
 
     if (detailLinks.length === 0) {
       log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);
       return;
     }
 
-    const childrenJobs = detailLinks.map(link => ({
+    const childrenJobs: {
+        name: string;
+        data: { strategyId: string; link: string };
+        queueName: string;
+        opts: {
+            attempts: number;
+            backoff: { type: string; delay: number };
+            removeOnComplete: boolean;
+            removeOnFail: number;
+            delay: number
+        }
+    }[] = detailLinks.map((link: string): {
+        name: "scrape-detail";
+        data: { strategyId: string; link: string };
+        queueName: string;
+        opts: {
+            attempts: number;
+            backoff: { type: string; delay: number };
+            removeOnComplete: boolean;
+            removeOnFail: number;
+            delay: number
+        }
+    } => ({
       name: 'scrape-detail',
       data: { strategyId, link },
       queueName: DETAIL_QUEUE_NAME,
@@ -84,12 +103,11 @@ export class ScanWorker extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job, err: Error) {
+  onFailed(job: Job, err: Error): void {
     const logMsg = `❌ ERRORE ScanWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;
     this.logger.error(logMsg, err.stack);
     this.logService.add(logMsg);
 
-    // NOTIFICA AGGIORNATA: Messaggio più chiaro per l'utente
     const notifyMsg = `❌ ERRORE CRITICO: La scansione per [${job.data.strategyId}] non è potuta iniziare: ${err.message}. L'intero processo per questa strategia è fallito.`;
     this.notificationService.sendNotification(notifyMsg);
   }

@@ -5,7 +5,7 @@ import { ConcorsiModule } from '../concorsi/concorsi.module';
 import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
 import { BullModule } from '@nestjs/bullmq';
 import { ScanWorker } from './scan.worker';
-import { SummaryWorker } from './summary.worker'; // Importa il nuovo worker
+import { SummaryWorker } from './summary.worker';
 import { FlowProducer } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -14,13 +14,12 @@ import {
   SUMMARY_QUEUE_NAME,
   FLOW_PRODUCER
 } from './crawler.constants';
-import { DetailWorker } from './detail.worker'; // Importa dal nuovo file
+import { DetailWorker } from './detail.worker';
 
-// Provider per il FlowProducer
 const flowProducerProvider = {
-  provide: FLOW_PRODUCER, // Usa la costante
+  provide: FLOW_PRODUCER,
   inject: [ConfigService],
-  useFactory: (configService: ConfigService) => {
+  useFactory: (configService: ConfigService): FlowProducer => {
     const connection = {
       host: configService.get<string>('REDIS_HOST', 'localhost'),
       port: configService.get<number>('REDIS_PORT', 6379),
@@ -35,28 +34,25 @@ const flowProducerProvider = {
     BullModule.registerQueue(
       { name: SCAN_QUEUE_NAME },
       { name: DETAIL_QUEUE_NAME },
-      { name: SUMMARY_QUEUE_NAME }, // Registra la nuova coda
+      { name: SUMMARY_QUEUE_NAME },
     ),
-    // LogModule e NotificationModule sono globali
   ],
   providers: [
     CrawlerService,
     ScanWorker,
     DetailWorker,
-    SummaryWorker, // Aggiunge il nuovo worker
+    SummaryWorker,
     DimmiCosaCerchiStrategy,
-    flowProducerProvider, // Aggiunge il FlowProducer
+    flowProducerProvider,
   ],
   controllers: [CrawlerController],
 })
 export class CrawlerModule implements OnModuleDestroy {
-  // Iniettiamo il FlowProducer per poterlo chiudere
   constructor(
     @Inject(FLOW_PRODUCER) private readonly flowProducer: FlowProducer,
   ) {}
 
-  // Chiudiamo le connessioni OnDestroy
-  onModuleDestroy() {
-    this.flowProducer.close();
+  public onModuleDestroy(): void {
+    this.flowProducer.close().then();
   }
 }

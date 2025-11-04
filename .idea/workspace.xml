@@ -4,58 +4,57 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="integrated notifications strategies foreach crawling strategy and separated logic of crawling from concorsi interface">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/cerca-concorsi.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.ask.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.edit.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env.old" beforeDir="false" afterPath="$PROJECT_DIR$/.env.old" afterDir="false" />
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="added types where possible, any should be checked and changed with a specific type">
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Changes.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Changes/shelved.patch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25,_09_10_[Changes]/shelved.patch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25__09_10__Changes_.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert_[Changes]/shelved.patch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert__Changes_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/crawl-concorso.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/dto/crawl-concorso.dto.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/create-concorso.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/dto/create-concorso.dto.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/entities/concorso.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/entities/concorso.entity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/scan.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/scan.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/log/log.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/log/log.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notification/notification.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.module.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/notification/notification.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/notification.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notification/strategies/notification.strategy.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/notification.strategy.interface.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ComposerSettings">
-    <execution />
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Matt3010"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Matt3010&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Matt3010/cerca-concorsi.git",
-    "accountId": "c8a8b685-9d73-4347-af43-6f53a8c88088"
-  }
-}]]></component>
-  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="A:\php\php8.3\php.exe" />
-  <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
-  </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 4
 }</component>
-  <component name="ProjectId" id="34vASPgGhWf0nkPoWOVpByIwkwO" />
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Matt3010/cerca-concorsi.git&quot;,
+    &quot;accountId&quot;: &quot;24393440-9c3a-436d-9f63-67059e0ac78c&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 5
+}]]></component>
+  <component name="ProjectId" id="350QtsgOGkHbQxMKxrNALBTqby2" />
   <component name="ProjectLevelVcsManager">
     <OptionsSetting value="false" id="Update" />
   </component>
@@ -65,114 +64,41 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "SHELLCHECK.PATH": "/Users/matteoscanferla/Library/Application Support/JetBrains/WebStorm2025.2/plugins/Shell Script/shellcheck",
-    "SONARLINT_PRECOMMIT_ANALYSIS": "true",
-    "Shell Script.crea_backend.sh.executor": "Run",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "A:/RepoProjects/cerca-concorsi",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "ts.external.directory.path": "A:\\RepoProjects\\cerca-concorsi\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "/Users/matteoscanferla/Desktop/backend-concorsi/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="A:\RepoProjects\cerca-concorsi" />
-      <recent name="$PROJECT_DIR$" />
-    </key>
-  </component>
-  <component name="RunManager" selected="Shell Script.crea_backend.sh">
-    <configuration name="crea_backend.sh" type="ShConfigurationType" temporary="true">
-      <option name="SCRIPT_TEXT" value="" />
-      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
-      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/crea_backend.sh" />
-      <option name="SCRIPT_OPTIONS" value="" />
-      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
-      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
-      <option name="INTERPRETER_PATH" value="/bin/bash" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="EXECUTE_IN_TERMINAL" value="true" />
-      <option name="EXECUTE_SCRIPT_FILE" value="true" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
-      <deployment type="docker-compose.yml">
-        <settings />
-      </deployment>
-      <method v="2" />
-    </configuration>
-    <configuration name="docker-compose.yml: Compose Deployment" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
-      <deployment type="docker-compose.yml">
-        <settings>
-          <option name="sourceFilePath" value="docker-compose.yml" />
-        </settings>
-      </deployment>
-      <method v="2" />
-    </configuration>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Shell Script.crea_backend.sh" />
-        <item itemvalue="Docker.docker-compose.yml: Compose Deployment" />
-      </list>
-    </recent_temporary>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.27397.92" />
+      </set>
+    </attachedChunks>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="" />
-      <created>1762083671322</created>
+      <changelist id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="" />
+      <created>1762244727055</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1762083671322</updated>
-      <workItem from="1762083672604" duration="16250000" />
-      <workItem from="1762208000964" duration="920000" />
+      <updated>1762244727055</updated>
+      <workItem from="1762244728076" duration="1698000" />
     </task>
-    <task id="LOCAL-00001" summary="v2">
-      <option name="closed" value="true" />
-      <created>1762112127488</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1762112127488</updated>
-    </task>
-    <task id="LOCAL-00002" summary="v3">
-      <option name="closed" value="true" />
-      <created>1762112528336</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1762112528336</updated>
-    </task>
-    <task id="LOCAL-00003" summary="v4">
-      <option name="closed" value="true" />
-      <created>1762112701103</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1762112701103</updated>
-    </task>
-    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="v2" />
-    <MESSAGE value="v3" />
-    <MESSAGE value="v4" />
-    <MESSAGE value="integrated notifications strategies foreach crawling strategy and separated logic of crawling from concorsi interface" />
-    <option name="LAST_COMMIT_MESSAGE" value="integrated notifications strategies foreach crawling strategy and separated logic of crawling from concorsi interface" />
+    <MESSAGE value="added types where possible, any should be checked and changed with a specific type" />
+    <option name="LAST_COMMIT_MESSAGE" value="added types where possible, any should be checked and changed with a specific type" />
   </component>
 </project>

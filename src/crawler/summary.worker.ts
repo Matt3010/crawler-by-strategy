@@ -9,13 +9,14 @@ import {
     ProcessResult,
 } from './strategies/crawler.strategy.interface';
 import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
+import {TargetedNotification} from "../notification/notification.types";
 
 type DetailJobResult = ProcessResult;
 
 @Processor(SUMMARY_QUEUE_NAME)
 @Injectable()
 export class SummaryWorker extends WorkerHost {
-    private readonly logger = new Logger(SummaryWorker.name);
+    private readonly logger: Logger = new Logger(SummaryWorker.name);
     private strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
@@ -32,26 +33,26 @@ export class SummaryWorker extends WorkerHost {
 
     async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
         const { strategyId, isCron, totalChildren } = job.data;
-        const log = (message: string) => {
+        const log: (message: string) => void = (message: string) => {
             this.logger.log(message);
             this.logService.add(message);
         }
 
         log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
 
-        const strategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
         if (!strategy) {
             const errorMsg = `❌ ERRORE CRITICO: Strategia [${strategyId}] non trovata nel SummaryWorker. Impossibile generare il riepilogo.`;
             log(errorMsg);
-            this.notificationService.sendNotification(errorMsg);
+            await this.notificationService.sendNotification(errorMsg);
             return;
         }
 
-        const completedValues = await job.getChildrenValues<DetailJobResult>();
-        const completedResults = Object.values(completedValues);
-        const failedCount = totalChildren - completedResults.length;
+        const completedValues: { [p: string]: DetailJobResult } = await job.getChildrenValues<DetailJobResult>();
+        const completedResults: DetailJobResult[] = Object.values(completedValues);
+        const failedCount: number = totalChildren - completedResults.length;
 
-        const targetedNotification = strategy.formatSummary(
+        const targetedNotification: TargetedNotification = strategy.formatSummary(
             completedResults,
             totalChildren,
             failedCount,
@@ -69,7 +70,7 @@ export class SummaryWorker extends WorkerHost {
     }
 
     @OnWorkerEvent('failed')
-    onFailed(job: Job, err: Error) {
+    onFailed(job: Job, err: Error): void {
         const logMsg = `❌ ERRORE CRITICO SummaryWorker: Job [${job.id}] fallito: ${err.message}`;
         this.logger.error(logMsg, err.stack);
         this.logService.add(logMsg);

@@ -13,12 +13,12 @@ export class CreateConcorsoDto {
   @IsString() @IsNotEmpty() description: string;
 
   @ApiProperty({ example: '2025-01-01' })
-  @Type(() => Date)
+  @Type((): DateConstructor => Date)
   @IsDate()
   startDate: Date;
 
   @ApiProperty({ example: '2025-02-01' })
-  @Type(() => Date)
+  @Type((): DateConstructor => Date)
   @IsDate()
   endDate: Date;
 

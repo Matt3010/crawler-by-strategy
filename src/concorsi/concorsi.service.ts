@@ -1,31 +1,30 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {DeleteResult, Repository, SelectQueryBuilder} from 'typeorm';
 import { Concorso } from './entities/concorso.entity';
 import { CreateConcorsoDto } from './dto/create-concorso.dto';
 import { UpdateConcorsoDto } from './dto/update-concorso.dto';
 import { CrawlConcorsoDto } from './dto/crawl-concorso.dto';
 
-// Definiamo il tipo di stato
 export type CrawlStatus = 'created' | 'updated' | 'unchanged';
 
 @Injectable()
 export class ConcorsiService {
-  private readonly logger = new Logger(ConcorsiService.name);
+  private readonly logger: Logger = new Logger(ConcorsiService.name);
   constructor(
     @InjectRepository(Concorso)
     private concorsiRepository: Repository<Concorso>,
   ) {}
 
   async create(createConcorsoDto: CreateConcorsoDto): Promise<Concorso> {
-    const newConcorso = this.concorsiRepository.create(createConcorsoDto);
+    const newConcorso: Concorso = this.concorsiRepository.create(createConcorsoDto);
     (newConcorso as any).source = 'manuale';
     (newConcorso as any).crawledAt = new Date();
     return this.concorsiRepository.save(newConcorso);
   }
 
   async update(id: string, updateConcorsoDto: UpdateConcorsoDto): Promise<Concorso> {
-    const concorso = await this.concorsiRepository.preload({ id: id, ...updateConcorsoDto });
+    const concorso: Concorso = await this.concorsiRepository.preload({ id: id, ...updateConcorsoDto });
     if (!concorso) {
       throw new NotFoundException(`Concorso con ID ${id} non trovato`);
     }
@@ -33,15 +32,15 @@ export class ConcorsiService {
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.concorsiRepository.delete(id);
+    const result: DeleteResult = await this.concorsiRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Concorso con ID ${id} non trovato`);
     }
   }
 
   async findAllPublic(brand?: string): Promise<Concorso[]> {
-    const today = new Date().toISOString().split('T')[0];
-    const query = this.concorsiRepository.createQueryBuilder('concorso');
+    const today: string = new Date().toISOString().split('T')[0];
+    const query: SelectQueryBuilder<Concorso> = this.concorsiRepository.createQueryBuilder('concorso');
     query.where('concorso.endDate >= :today', { today });
     if (brand) {
       query.andWhere('LOWER(concorso.brand) LIKE LOWER(:brand)', { brand: `%${brand}%` });
@@ -51,40 +50,33 @@ export class ConcorsiService {
   }
 
   async findOnePublic(id: string): Promise<Concorso> {
-    const concorso = await this.concorsiRepository.findOneBy({ id });
+    const concorso: Concorso = await this.concorsiRepository.findOneBy({ id });
     if (!concorso) {
       throw new NotFoundException(`Concorso con ID ${id} non trovato`);
     }
     return concorso;
   }
 
-  /**
-   * AGGIORNATO: Ritorna 'created', 'updated' o 'unchanged'
-   */
   async createOrUpdateFromCrawl(dto: CrawlConcorsoDto): Promise<{ concorso: Concorso, status: CrawlStatus }> {
-    const existingConcorso = await this.concorsiRepository.findOne({
+    const existingConcorso: Concorso = await this.concorsiRepository.findOne({
       where: { sourceId: dto.sourceId },
     });
     const now = new Date();
 
     if (existingConcorso) {
-      // --- Logica di confronto ---
-      let hasChanges = false;
+      let hasChanges: boolean = false;
       const desc = dto.description || existingConcorso.description;
 
       if (existingConcorso.title !== dto.title) hasChanges = true;
       if (existingConcorso.description !== desc) hasChanges = true;
       if (existingConcorso.rulesUrl !== dto.rulesUrl) hasChanges = true;
 
-      // Confronto sicuro delle date (entrambi sono oggetti Date)
       if (existingConcorso.startDate.toISOString() !== dto.startDate.toISOString()) hasChanges = true;
       if (existingConcorso.endDate.toISOString() !== dto.endDate.toISOString()) hasChanges = true;
 
-      // Confronto degli array di immagini
-      const oldImages = JSON.stringify(existingConcorso.images || []);
-      const newImages = JSON.stringify(dto.images || []);
+      const oldImages: string = JSON.stringify(existingConcorso.images || []);
+      const newImages: string = JSON.stringify(dto.images || []);
       if (oldImages !== newImages) hasChanges = true;
-      // --- Fine Logica ---
 
       if (!hasChanges) {
         return { concorso: existingConcorso, status: 'unchanged' };
@@ -101,13 +93,12 @@ export class ConcorsiService {
       existingConcorso.crawledAt = now;
       existingConcorso.images = dto.images;
 
-      const updated = await this.concorsiRepository.save(existingConcorso);
+      const updated: Concorso = await this.concorsiRepository.save(existingConcorso);
       return { concorso: updated, status: 'updated' };
 
     } else {
-      // Nuovo concorso
-      const newConcorso = this.concorsiRepository.create({ ...dto, crawledAt: now });
-      const created = await this.concorsiRepository.save(newConcorso);
+      const newConcorso: Concorso = this.concorsiRepository.create({ ...dto, crawledAt: now });
+      const created: Concorso = await this.concorsiRepository.save(newConcorso);
       return { concorso: created, status: 'created' };
     }
   }

@@ -1,46 +1,38 @@
-import { Injectable, Logger, Inject, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, QueueEvents } from 'bullmq';
+import {Job, Queue, QueueEvents} from 'bullmq';
 import { LogService } from 'src/log/log.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME } from './crawler.constants';
 
 @Injectable()
 export class CrawlerService implements OnModuleDestroy {
-  private readonly logger = new Logger(CrawlerService.name);
+  private readonly logger: Logger = new Logger(CrawlerService.name);
 
-  // Manteniamo QueueEvents SOLO per la ScanQueue, per sapere quando il "dispatch" è finito.
-  private scanQueueEvents: QueueEvents;
+  private readonly scanQueueEvents: QueueEvents;
 
   constructor(
     @InjectQueue(SCAN_QUEUE_NAME) private scanQueue: Queue,
-    @InjectQueue(SUMMARY_QUEUE_NAME) private summaryQueue: Queue, // Per pulire
+    @InjectQueue(SUMMARY_QUEUE_NAME) private summaryQueue: Queue,
     private readonly configService: ConfigService,
     private readonly logService: LogService,
     private readonly notificationService: NotificationService,
   ) {
-    // Inizializza QueueEvents manualmente
     const connection = {
       host: configService.get<string>('REDIS_HOST', 'localhost'),
       port: configService.get<number>('REDIS_PORT', 6379),
     };
     this.scanQueueEvents = new QueueEvents(SCAN_QUEUE_NAME, { connection });
-
-    // --- FIX v32 ---
-    // L'oggetto 'QueueEvents' È l'event emitter.
-    this.scanQueueEvents.setMaxListeners(20); // Limite basso, solo per le strategie
-    // --- FINE FIX ---
+    this.scanQueueEvents.setMaxListeners(20);
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async handleCron() {
+  async handleCron(): Promise<void> {
     this.logger.warn('--- CRON JOB AVVIATO ---');
     const msg = '--- 🏁 CRON JOB AVVIATO (schedulato) ---';
-    this.logService.add(msg);
-    // NOTIFICA RIMOSSA: Non inviamo più una notifica all'avvio.
-    // this.notificationService.sendNotification(msg);
+    await this.logService.add(msg);
     await this.logService.clear();
     await this.startCrawl(true);
   }
@@ -48,28 +40,25 @@ export class CrawlerService implements OnModuleDestroy {
   async forceCrawl(): Promise<any> {
     this.logger.log('--- CRAWL FORZATO AVVIATO ---');
     const msg = '--- 🚀 CRAWL FORZATO AVVIATO (manuale) ---';
-    this.logService.add(msg);
-    // NOTIFICA RIMOSSA: Non inviamo più una notifica all'avvio.
-    // this.notificationService.sendNotification(msg);
+    await this.logService.add(msg);
     await this.logService.clear();
-    await this.startCrawl(false); // Non attende il completamento
+    await this.startCrawl(false);
     return { message: 'Crawl avviato. I task sono stati aggiunti alla coda.' };
   }
 
   private async startCrawl(waitForCompletion = false): Promise<void> {
-    const activeStrategiesIds = (this.configService.get<string>('ACTIVE_STRATEGIES') || '')
+    const activeStrategiesIds: string[] = (this.configService.get<string>('ACTIVE_STRATEGIES') || '')
       .split(',')
-      .filter(id => id.trim().length > 0);
+      .filter((id: string): boolean => id.trim().length > 0);
 
     if (activeStrategiesIds.length === 0) {
       const msg = '❌ ERRORE: Nessuna strategia attiva in .env (ACTIVE_STRATEGIES).';
       this.logger.warn(msg);
-      this.logService.add(msg);
-      this.notificationService.sendNotification(msg); // Questa notifica di errore resta
+      await this.logService.add(msg);
+      await this.notificationService.sendNotification(msg);
       return;
     }
 
-    // Pulisce le code prima di iniziare
     await this.scanQueue.clean(0, 5000, 'wait');
     await this.scanQueue.clean(0, 5000, 'delayed');
     await this.scanQueue.clean(0, 5000, 'active');
@@ -77,11 +66,19 @@ export class CrawlerService implements OnModuleDestroy {
     await this.summaryQueue.clean(0, 5000, 'delayed');
     await this.summaryQueue.clean(0, 5000, 'active');
 
-    const jobs = activeStrategiesIds.map(id => ({
+    const jobs: {
+        name: string;
+        data: { strategyId: string; isCron: boolean };
+        opts: { jobId: string; removeOnComplete: boolean; removeOnFail: number }
+    }[] = activeStrategiesIds.map((id: string): {
+        name: "scan-strategy";
+        data: { strategyId: string; isCron: boolean };
+        opts: { jobId: string; removeOnComplete: boolean; removeOnFail: number }
+    } => ({
       name: 'scan-strategy',
       data: {
         strategyId: id,
-        isCron: waitForCompletion // Passa l'info se è un cron
+        isCron: waitForCompletion
       },
       opts: {
         jobId: `scan-${id}`,
@@ -90,7 +87,7 @@ export class CrawlerService implements OnModuleDestroy {
       }
     }));
 
-    const createdJobs = await this.scanQueue.addBulk(jobs);
+    const createdJobs: Job[] = await this.scanQueue.addBulk(jobs);
     const logMsg = `Aggiunti ${createdJobs.length} job di scansione (Flows) alla coda [${SCAN_QUEUE_NAME}]`;
     this.logger.log(logMsg);
     this.logService.add(logMsg);
@@ -98,30 +95,25 @@ export class CrawlerService implements OnModuleDestroy {
     if (waitForCompletion) {
       this.logger.log('In attesa del completamento del dispatch (ScanJobs)...');
 
-      const results = await Promise.allSettled(
-        createdJobs.map(job => job.waitUntilFinished(this.scanQueueEvents))
+      const results: PromiseSettledResult<unknown>[] = await Promise.allSettled(
+        createdJobs.map((job: Job): Promise<unknown> => job.waitUntilFinished(this.scanQueueEvents))
       );
 
-      let failedDispatches = 0;
-      results.forEach((r, idx) => {
+      let failedDispatches: number = 0;
+      results.forEach((r: PromiseSettledResult<unknown>, idx: number): void => {
         if (r.status === 'rejected') {
           failedDispatches++;
           this.logService.add(`❌ ERRORE CRITICO: Dispatch [${activeStrategiesIds[idx]}] fallita: ${r.reason?.message}`);
         }
       });
 
-      // Questo messaggio ora significa "Creazione dei Flow completata"
       const summaryMsg = `--- ✅ DISPATCH CRON COMPLETATO ---
-- Strategie inviate: ${createdJobs.length}
-- Dispatch falliti: ${failedDispatches}
-(I riepiloghi arriveranno al termine dei job)`;
+        - Strategie inviate: ${createdJobs.length}
+        - Dispatch falliti: ${failedDispatches}
+        (I riepiloghi arriveranno al termine dei job)`;
 
       this.logger.log(summaryMsg);
-      this.logService.add(summaryMsg);
-
-      // NOTIFICA RIMOSSA: Questa notifica era tecnica e confusionaria.
-      // L'utente riceverà il report finale dal SummaryWorker.
-      // this.notificationService.sendNotification(summaryMsg);
+      await this.logService.add(summaryMsg);
     }
   }
 
@@ -129,7 +121,7 @@ export class CrawlerService implements OnModuleDestroy {
     return this.logService.get(count);
   }
 
-  async onModuleDestroy() {
+  async onModuleDestroy(): Promise<void> {
     await this.scanQueueEvents.close();
   }
 }

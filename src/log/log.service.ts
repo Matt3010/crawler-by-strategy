@@ -9,7 +9,7 @@ export class LogService implements OnModuleDestroy {
 
   constructor(@Inject('REDIS_LOG_CLIENT') private readonly redis: Redis) {}
 
-  async add(message: string) {
+  async add(message: string): Promise<void> {
     try {
       const logEntry = `[${new Date().toISOString()}] ${message}`;
       await this.redis.lpush(this.LOG_KEY, logEntry);
@@ -28,7 +28,7 @@ export class LogService implements OnModuleDestroy {
     }
   }
 
-  async clear() {
+  async clear(): Promise<void> {
      try {
        await this.redis.del(this.LOG_KEY);
      } catch (error) {
@@ -36,7 +36,7 @@ export class LogService implements OnModuleDestroy {
      }
   }
 
-  onModuleDestroy() {
+  public onModuleDestroy(): void {
     this.redis.quit();
   }
 }

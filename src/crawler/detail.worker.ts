@@ -9,13 +9,12 @@ import {
 } from './strategies/crawler.strategy.interface';
 import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
 
-export type CrawlStatus = 'created' | 'updated' | 'unchanged' | 'error';
 export type DetailJobResult = ProcessResult;
 
 @Processor(DETAIL_QUEUE_NAME)
 @Injectable()
 export class DetailWorker extends WorkerHost {
-    private readonly logger = new Logger(DetailWorker.name);
+    private readonly logger: Logger = new Logger(DetailWorker.name);
     private readonly strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
@@ -26,8 +25,8 @@ export class DetailWorker extends WorkerHost {
         this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);
     }
 
-    private readonly createLogger = (jobId: string | number) => {
-        return (message: string) => {
+    private readonly createLogger: (jobId: (string | number)) => (message: string) => void = (jobId: string | number): (message: string) => void => {
+        return (message: string): void => {
             const logMsg = `[Job ${jobId}] ${message}`;
             this.logger.log(logMsg);
             this.logService.add(logMsg);
@@ -36,17 +35,17 @@ export class DetailWorker extends WorkerHost {
 
     async process(job: Job<{ strategyId: string, link: string }>): Promise<DetailJobResult> {
         const { strategyId, link } = job.data;
-        const log = this.createLogger(job.id);
+        const log: (message: string) => void = this.createLogger(job.id);
 
         log(`Avvio scraping dettaglio per [${strategyId}]: ${link}`);
 
-        const strategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
         if (!strategy) {
             throw new Error(`[Job ${job.id}] Strategia "${strategyId}" non trovata.`);
         }
 
-        const detailData = await strategy.runDetail(link, log);
-        const result = await strategy.processDetail(detailData, log);
+        const detailData: any = await strategy.runDetail(link, log);
+        const result: ProcessResult = await strategy.processDetail(detailData, log);
 
         log(`Scraping completato: ${link} (Stato: ${result.status})`);
 
@@ -54,7 +53,7 @@ export class DetailWorker extends WorkerHost {
     }
 
     @OnWorkerEvent('failed')
-    onFailed(job: Job, err: Error) {
+    onFailed(job: Job, err: Error): void {
         const logMsg = `❌ ERRORE DetailWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;
         this.logger.error(logMsg, err.stack);
         this.logService.add(logMsg);

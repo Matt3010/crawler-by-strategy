@@ -1,0 +1,570 @@
+Index: src/crawler/crawler.service.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { Injectable, Logger, Inject, OnModuleDestroy } from '@nestjs/common';\nimport { Cron, CronExpression } from '@nestjs/schedule';\nimport { ConfigService } from '@nestjs/config';\nimport { InjectQueue } from '@nestjs/bullmq';\nimport { Queue, QueueEvents } from 'bullmq';\nimport { LogService } from 'src/log/log.service';\nimport { NotificationService } from 'src/notification/notification.service';\nimport { SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME } from './crawler.constants';\n\n@Injectable()\nexport class CrawlerService implements OnModuleDestroy {\n  private readonly logger = new Logger(CrawlerService.name);\n\n  // Manteniamo QueueEvents SOLO per la ScanQueue, per sapere quando il \"dispatch\" è finito.\n  private scanQueueEvents: QueueEvents;\n\n  constructor(\n    @InjectQueue(SCAN_QUEUE_NAME) private scanQueue: Queue,\n    @InjectQueue(SUMMARY_QUEUE_NAME) private summaryQueue: Queue, // Per pulire\n    private readonly configService: ConfigService,\n    private readonly logService: LogService,\n    private readonly notificationService: NotificationService,\n  ) {\n    // Inizializza QueueEvents manualmente\n    const connection = {\n      host: configService.get<string>('REDIS_HOST', 'localhost'),\n      port: configService.get<number>('REDIS_PORT', 6379),\n    };\n    this.scanQueueEvents = new QueueEvents(SCAN_QUEUE_NAME, { connection });\n\n    // --- FIX v32 ---\n    // L'oggetto 'QueueEvents' È l'event emitter.\n    this.scanQueueEvents.setMaxListeners(20); // Limite basso, solo per le strategie\n    // --- FINE FIX ---\n  }\n\n  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)\n  async handleCron() {\n    this.logger.warn('--- CRON JOB AVVIATO ---');\n    const msg = '--- \uD83C\uDFC1 CRON JOB AVVIATO (schedulato) ---';\n    this.logService.add(msg);\n    this.notificationService.sendNotification(msg);\n    await this.logService.clear();\n    await this.startCrawl(true);\n  }\n\n  async forceCrawl(): Promise<any> {\n    this.logger.log('--- CRAWL FORZATO AVVIATO ---');\n    const msg = '--- \uD83D\uDE80 CRAWL FORZATO AVVIATO (manuale) ---';\n    this.logService.add(msg);\n    this.notificationService.sendNotification(msg);\n    await this.logService.clear();\n    await this.startCrawl(false); // Non attende il completamento\n    return { message: 'Crawl avviato. I task sono stati aggiunti alla coda.' };\n  }\n\n  private async startCrawl(waitForCompletion = false): Promise<void> {\n    const activeStrategiesIds = (this.configService.get<string>('ACTIVE_STRATEGIES') || '')\n      .split(',')\n      .filter(id => id.trim().length > 0);\n\n    if (activeStrategiesIds.length === 0) {\n      const msg = '❌ ERRORE: Nessuna strategia attiva in .env (ACTIVE_STRATEGIES).';\n      this.logger.warn(msg);\n      this.logService.add(msg);\n      this.notificationService.sendNotification(msg);\n      return;\n    }\n\n    // Pulisce le code prima di iniziare\n    await this.scanQueue.clean(0, 5000, 'wait');\n    await this.scanQueue.clean(0, 5000, 'delayed');\n    await this.scanQueue.clean(0, 5000, 'active');\n    await this.summaryQueue.clean(0, 5000, 'wait');\n    await this.summaryQueue.clean(0, 5000, 'delayed');\n    await this.summaryQueue.clean(0, 5000, 'active');\n\n    const jobs = activeStrategiesIds.map(id => ({\n      name: 'scan-strategy',\n      data: {\n        strategyId: id,\n        isCron: waitForCompletion // Passa l'info se è un cron\n      },\n      opts: {\n        jobId: `scan-${id}`,\n        removeOnComplete: true,\n        removeOnFail: 100,\n      }\n    }));\n\n    const createdJobs = await this.scanQueue.addBulk(jobs);\n    const logMsg = `Aggiunti ${createdJobs.length} job di scansione (Flows) alla coda [${SCAN_QUEUE_NAME}]`;\n    this.logger.log(logMsg);\n    this.logService.add(logMsg);\n\n    if (waitForCompletion) {\n      this.logger.log('In attesa del completamento del dispatch (ScanJobs)...');\n\n      const results = await Promise.allSettled(\n        createdJobs.map(job => job.waitUntilFinished(this.scanQueueEvents))\n      );\n\n      let failedDispatches = 0;\n      results.forEach((r, idx) => {\n        if (r.status === 'rejected') {\n          failedDispatches++;\n          this.logService.add(`❌ ERRORE CRITICO: Dispatch [${activeStrategiesIds[idx]}] fallita: ${r.reason?.message}`);\n        }\n      });\n\n      // Questo messaggio ora significa \"Creazione dei Flow completata\"\n      const summaryMsg = `--- ✅ DISPATCH CRON COMPLETATO ---\n- Strategie inviate: ${createdJobs.length}\n- Dispatch falliti: ${failedDispatches}\n(I riepiloghi arriveranno al termine dei job)`;\n\n      this.logger.log(summaryMsg);\n      this.logService.add(summaryMsg);\n      this.notificationService.sendNotification(summaryMsg);\n    }\n  }\n\n  async getLogs(count = 100): Promise<string[]> {\n    return this.logService.get(count);\n  }\n\n  async onModuleDestroy() {\n    await this.scanQueueEvents.close();\n  }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/crawler/crawler.service.ts b/src/crawler/crawler.service.ts
+--- a/src/crawler/crawler.service.ts	(revision 60c06fede030edee0ede0465021fb66ededa4d20)
++++ b/src/crawler/crawler.service.ts	(date 1762110634552)
+@@ -36,19 +36,11 @@
+ 
+   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+   async handleCron() {
+-    this.logger.warn('--- CRON JOB AVVIATO ---');
+-    const msg = '--- 🏁 CRON JOB AVVIATO (schedulato) ---';
+-    this.logService.add(msg);
+-    this.notificationService.sendNotification(msg);
+     await this.logService.clear();
+     await this.startCrawl(true);
+   }
+ 
+   async forceCrawl(): Promise<any> {
+-    this.logger.log('--- CRAWL FORZATO AVVIATO ---');
+-    const msg = '--- 🚀 CRAWL FORZATO AVVIATO (manuale) ---';
+-    this.logService.add(msg);
+-    this.notificationService.sendNotification(msg);
+     await this.logService.clear();
+     await this.startCrawl(false); // Non attende il completamento
+     return { message: 'Crawl avviato. I task sono stati aggiunti alla coda.' };
+Index: src/crawler/scan.worker.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';\nimport { Job, FlowProducer } from 'bullmq';\nimport { Injectable, Logger, Inject } from '@nestjs/common';\nimport { ICrawlerStrategy } from './strategies/crawler.strategy.interface';\nimport { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';\nimport { LogService } from 'src/log/log.service';\nimport { NotificationService } from 'src/notification/notification.service';\nimport {\n  SCAN_QUEUE_NAME,\n  DETAIL_QUEUE_NAME,\n  SUMMARY_QUEUE_NAME,\n  FLOW_PRODUCER\n} from './crawler.constants';\n\n@Processor(SCAN_QUEUE_NAME)\n@Injectable()\nexport class ScanWorker extends WorkerHost {\n  private readonly logger = new Logger(ScanWorker.name);\n  private strategies: Map<string, ICrawlerStrategy> = new Map();\n\n  constructor(\n    @Inject(FLOW_PRODUCER) private readonly flowProducer: FlowProducer,\n    private readonly logService: LogService,\n    private readonly notificationService: NotificationService,\n    private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,\n  ) {\n    super();\n    this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);\n  }\n\n  private createLogger = (jobId: string | number) => {\n    return (message: string) => {\n      const logMsg = `[Job ${jobId}] ${message}`;\n      this.logger.log(logMsg);\n      this.logService.add(logMsg);\n    };\n  }\n\n  /**\n   * AGGIORNATO: Non attende, crea un Flow con un job di riepilogo\n   */\n  async process(job: Job<{ strategyId: string, isCron: boolean }>): Promise<void> {\n    const log = this.createLogger(job.id || 'scan');\n    const { strategyId, isCron } = job.data;\n    log(`Ricevuto job di scansione per [${strategyId}]...`);\n\n    const strategy = this.strategies.get(strategyId);\n    if (!strategy) throw new Error(`Strategia \"${strategyId}\" non trovata.`);\n\n    const targetUrl = strategy.getBaseUrl();\n    if (!targetUrl) throw new Error(`Nessun URL base definito per [${strategyId}]`);\n\n    const detailLinks = await strategy.runListing(log, targetUrl);\n\n    if (detailLinks.length === 0) {\n        log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);\n        return;\n    }\n\n    // 1. Prepara i job figli (DetailWorker)\n    const childrenJobs = detailLinks.map(link => ({\n      name: 'scrape-detail',\n      data: { strategyId, link },\n      queueName: DETAIL_QUEUE_NAME,\n      opts: {\n        attempts: 3,\n        backoff: { type: 'exponential', delay: 1000 },\n        removeOnComplete: true,\n        removeOnFail: 10,\n      }\n    }));\n\n    // 2. Crea il flow: 1 job di riepilogo che dipende dai job figli\n    await this.flowProducer.add({\n      name: `summary-${strategyId}`,\n      queueName: SUMMARY_QUEUE_NAME,\n      data: {\n        strategyId: strategyId,\n        isCron: isCron, // Passa l'info se è un cron job\n        totalChildren: childrenJobs.length\n      },\n      opts: {\n        removeOnComplete: true,\n        removeOnFail: 5,\n      },\n      children: childrenJobs,\n    });\n\n    log(`Flow creato: 1 job di riepilogo [${SUMMARY_QUEUE_NAME}] in attesa di ${childrenJobs.length} job figli [${DETAIL_QUEUE_NAME}].`);\n  }\n\n  @OnWorkerEvent('failed')\n  onFailed(job: Job, err: Error) {\n    const logMsg = `❌ ERRORE ScanWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;\n    this.logger.error(logMsg, err.stack);\n    this.logService.add(logMsg);\n    this.notificationService.sendNotification(logMsg);\n  }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/crawler/scan.worker.ts b/src/crawler/scan.worker.ts
+--- a/src/crawler/scan.worker.ts	(revision 60c06fede030edee0ede0465021fb66ededa4d20)
++++ b/src/crawler/scan.worker.ts	(date 1762110021070)
+@@ -53,8 +53,8 @@
+     const detailLinks = await strategy.runListing(log, targetUrl);
+ 
+     if (detailLinks.length === 0) {
+-        log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);
+-        return;
++      log(`Nessun link trovato per [${strategyId}]. Scansione terminata.`);
++      return;
+     }
+ 
+     // 1. Prepara i job figli (DetailWorker)
+@@ -67,10 +67,10 @@
+         backoff: { type: 'exponential', delay: 1000 },
+         removeOnComplete: true,
+         removeOnFail: 10,
++        delay: Math.floor(Math.random() * 30000),
+       }
+     }));
+ 
+-    // 2. Crea il flow: 1 job di riepilogo che dipende dai job figli
+     await this.flowProducer.add({
+       name: `summary-${strategyId}`,
+       queueName: SUMMARY_QUEUE_NAME,
+@@ -96,4 +96,4 @@
+     this.logService.add(logMsg);
+     this.notificationService.sendNotification(logMsg);
+   }
+-}
++}
+\ No newline at end of file
+Index: src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { Injectable, Logger } from '@nestjs/common';\nimport { ConfigService } from '@nestjs/config'; // Importato\nimport { CrawlConcorsoDto } from 'src/concorsi/dto/crawl-concorso.dto';\nimport { ICrawlerStrategy } from './crawler.strategy.interface';\nimport * as cheerio from 'cheerio';\n\n// --- FUNZIONI HELPER PER IL PARSING ---\nconst monthMap: { [key: string]: string } = {\n  'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06',\n  'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12'\n};\n\nconst parseDateString = (dateString: string): string | null => {\n  try {\n    const parts = dateString.toLowerCase().split(' ');\n    if (parts.length < 3) return null;\n    const day = parts[0].replace('°', '').padStart(2, '0');\n    const month = monthMap[parts[1]];\n    const year = parts[2];\n    if (!day || !month || !year) return null;\n    return `${year}-${month}-${day}`;\n  } catch (e) { return null; }\n};\n// --- FINE FUNZIONI HELPER ---\n\n@Injectable()\nexport class DimmiCosaCerchiStrategy implements ICrawlerStrategy {\n  private readonly logger = new Logger(DimmiCosaCerchiStrategy.name);\n\n  // Rispettiamo robots.txt (visto in chat precedente)\n  private readonly MAX_PAGES_TO_SCRAPE = 1;\n\n  // --- LOGICA PROXY VERCEL ---\n  private readonly proxyUrl: string;\n\n  constructor(private readonly configService: ConfigService) {\n    this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');\n    if (!this.proxyUrl) {\n      this.logger.error('!!! MY_PROXY_URL non impostato in .env. Lo scraper fallirà. !!!');\n    } else {\n      this.logger.log(`Strategia configurata per usare il proxy Vercel: ${this.proxyUrl}`);\n    }\n  }\n  // --- FINE LOGICA PROXY ---\n\n  getStrategyId(): string {\n    return 'dimmicosacerchi';\n  }\n\n  getBaseUrl(): string {\n    return 'https://www.dimmicosacerchi.it/concorsi-a-premi';\n  }\n\n  /**\n   * Helper per fetchare (MODIFICATO per usare il proxy Vercel)\n   */\n  private async fetchHtml(targetUrl: string): Promise<string> {\n    if (!this.proxyUrl) {\n      throw new Error('Proxy URL non configurato.');\n    }\n\n    // Costruiamo l'URL del proxy passando l'URL target come parametro\n    const fetchUrl = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;\n    console.log(`Fetching ${fetchUrl}`);\n\n    try {\n      // Chiamiamo il nostro proxy Vercel\n      const response = await fetch(fetchUrl);\n\n      if (!response.ok) {\n        throw new Error(`Proxy fetch fallito con stato ${response.status} per ${targetUrl}`);\n      }\n      return await response.text();\n\n    } catch (error) {\n      this.logger.error(`Errore durante il fetch via proxy Vercel: ${error.message}`);\n      throw error;\n    }\n  }\n\n\n  /**\n   * FASE 1: Scansione Elenco e Paginazione (Usa fetchHtml)\n   */\n  async runListing(log: (message: string) => void, baseUrl: string): Promise<string[]> {\n    log(`[${this.getStrategyId()}] Avvio scansione elenco: ${baseUrl}`);\n\n    const allDetailLinks = new Set<string>();\n    let currentPageUrl: string | null = baseUrl;\n    let pageCounter = 1;\n\n    try {\n      while (currentPageUrl && pageCounter <= this.MAX_PAGES_TO_SCRAPE) {\n        log(`[${this.getStrategyId()}] Scansione pagina elenco: ${currentPageUrl} (Pagina ${pageCounter})`);\n\n        // --- USA L'HELPER PROXY ---\n        const html = await this.fetchHtml(currentPageUrl);\n        // --- FINE MODIFICA ---\n\n        const $ = cheerio.load(html);\n\n        const linksOnThisPage: string[] = [];\n        $('h2.entry-title a.p-url').each((i, el) => {\n          const href = $(el).attr('href');\n          if (href) linksOnThisPage.push(href);\n        });\n\n        if (linksOnThisPage.length === 0) {\n          log(`[${this.getStrategyId()}] Nessun link trovato a pagina ${pageCounter}. Interrompo la paginazione.`);\n          break;\n        }\n\n        linksOnThisPage.forEach(link => allDetailLinks.add(link));\n        pageCounter++;\n\n        // La paginazione è disabilitata (MAX_PAGES_TO_SCRAPE = 1), ma lasciamo la logica\n        const nextButton = $('a.next.page-numbers');\n        currentPageUrl = nextButton ? nextButton.attr('href') || null : null;\n      }\n\n      log(`[${this.getStrategyId()}] Scansione elenco completata. Trovati ${allDetailLinks.size} link unici.`);\n      return Array.from(allDetailLinks);\n\n    } catch (error) {\n      log(`[${this.getStrategyId()}] ERRORE in runListing: ${error.message}`);\n      throw error;\n    }\n  }\n\n  /**\n   * FASE 2: Scraping Pagina di Dettaglio (Usa fetchHtml)\n   */\n  async runDetail(link: string, log: (message: string) => void): Promise<Omit<CrawlConcorsoDto, 'brand'>> {\n\n    // --- USA L'HELPER PROXY ---\n    const html = await this.fetchHtml(link);\n    // --- FINE MODIFICA ---\n\n    const $ = cheerio.load(html);\n\n    // Selettori basati su 'sotto index.html'\n    const title = $('h1.s-title').text().trim() || 'Titolo non trovato';\n    const description = $('.entry-content p').first().text().trim() || '';\n\n    let rulesUrl = null;\n    $('.entry-content a').each((i, el) => {\n        if ($(el).text().toLowerCase().includes('regolamento')) {\n            rulesUrl = $(el).attr('href');\n            return false;\n        }\n    });\n\n    const contentText = $('.entry-content').text() || '';\n\n    // --- Estrazione Immagine ---\n    const images: string[] = [];\n    const imageUrl = $('meta[name=\"twitter:image\"]').attr('content') || $('meta[property=\"og:image\"]').attr('content');\n\n    if (imageUrl) {\n        try {\n            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;\n            images.push(absoluteUrl);\n        } catch (e) {\n            log(`[${this.getStrategyId()}] URL immagine non valido: ${imageUrl}`);\n        }\n    }\n    // --- Fine Estrazione Immagine ---\n\n    // Parsing date (da 'sotto index.html')\n    let startDateStr: string | null = null;\n    let endDateStr: string | null = null;\n\n    let match = contentText.match(/dal (\\d+°? \\w+ \\d{4})\\s+al\\s+(\\d+°? \\w+ \\d{4})/i);\n    if (match && match[1] && match[2]) {\n        startDateStr = parseDateString(match[1]);\n        endDateStr = parseDateString(match[2]);\n    } else {\n        match = contentText.match(/(fino al|entro e non oltre il|entro il|scade il)\\s+(\\d+°? \\w+ \\d{4})/i);\n        if (match && match[2]) {\n            endDateStr = parseDateString(match[2]);\n        }\n    }\n\n    const today = new Date().toISOString().split('T')[0];\n    if (!startDateStr) startDateStr = today;\n    if (!endDateStr) {\n      const fallbackEndDate = new Date();\n      fallbackEndDate.setDate(fallbackEndDate.getDate() + 30);\n      endDateStr = fallbackEndDate.toISOString().split('T')[0];\n    }\n\n    const startDate = new Date(startDateStr);\n    const endDate = new Date(endDateStr);\n\n    return {\n      title: title,\n      description: description,\n      rulesUrl: rulesUrl || link,\n      source: link,\n      sourceId: new URL(link).pathname,\n      startDate: startDate,\n      endDate: endDate,\n      images: images,\n    };\n  }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts b/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts
+--- a/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts	(revision 60c06fede030edee0ede0465021fb66ededa4d20)
++++ b/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts	(date 1762110278941)
+@@ -28,11 +28,20 @@
+   private readonly logger = new Logger(DimmiCosaCerchiStrategy.name);
+ 
+   // Rispettiamo robots.txt (visto in chat precedente)
+-  private readonly MAX_PAGES_TO_SCRAPE = 1;
++  private readonly MAX_PAGES_TO_SCRAPE = 5;
+ 
+   // --- LOGICA PROXY VERCEL ---
+   private readonly proxyUrl: string;
+ 
++  // --- MODIFICA INIZIO ---
++  /**
++   * Helper per creare una pausa (usato per il Jitter)
++   */
++  private delay(ms: number) {
++    return new Promise(resolve => setTimeout(resolve, ms));
++  }
++  // --- MODIFICA FINE ---
++
+   constructor(private readonly configService: ConfigService) {
+     this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');
+     if (!this.proxyUrl) {
+@@ -52,16 +61,26 @@
+   }
+ 
+   /**
+-   * Helper per fetchare (MODIFICATO per usare il proxy Vercel)
++   * Helper per fetchare (MODIFICATO per usare il proxy Vercel E JITTER)
+    */
+   private async fetchHtml(targetUrl: string): Promise<string> {
+     if (!this.proxyUrl) {
+       throw new Error('Proxy URL non configurato.');
+     }
+ 
++    // --- MODIFICA INIZIO ---
++    // Aggiungiamo un "jitter" (pausa casuale) tra 500ms e 2500ms
++    // per rendere le richieste meno ritmiche.
++    const randomDelay = Math.floor(Math.random() * 2000) + 500;
++    await this.delay(randomDelay);
++    // --- MODIFICA FINE ---
++
+     // Costruiamo l'URL del proxy passando l'URL target come parametro
+     const fetchUrl = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
+-    console.log(`Fetching ${fetchUrl}`);
++
++    // --- MODIFICA INIZIO (log aggiornato) ---
++    console.log(`Fetching ${fetchUrl} (dopo ${randomDelay}ms di attesa)`);
++    // --- MODIFICA FINE ---
+ 
+     try {
+       // Chiamiamo il nostro proxy Vercel
+@@ -144,10 +163,10 @@
+ 
+     let rulesUrl = null;
+     $('.entry-content a').each((i, el) => {
+-        if ($(el).text().toLowerCase().includes('regolamento')) {
+-            rulesUrl = $(el).attr('href');
+-            return false;
+-        }
++      if ($(el).text().toLowerCase().includes('regolamento')) {
++        rulesUrl = $(el).attr('href');
++        return false;
++      }
+     });
+ 
+     const contentText = $('.entry-content').text() || '';
+@@ -157,12 +176,12 @@
+     const imageUrl = $('meta[name="twitter:image"]').attr('content') || $('meta[property="og:image"]').attr('content');
+ 
+     if (imageUrl) {
+-        try {
+-            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
+-            images.push(absoluteUrl);
+-        } catch (e) {
+-            log(`[${this.getStrategyId()}] URL immagine non valido: ${imageUrl}`);
+-        }
++      try {
++        const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
++        images.push(absoluteUrl);
++      } catch (e) {
++        log(`[${this.getStrategyId()}] URL immagine non valido: ${imageUrl}`);
++      }
+     }
+     // --- Fine Estrazione Immagine ---
+ 
+@@ -172,13 +191,13 @@
+ 
+     let match = contentText.match(/dal (\d+°? \w+ \d{4})\s+al\s+(\d+°? \w+ \d{4})/i);
+     if (match && match[1] && match[2]) {
+-        startDateStr = parseDateString(match[1]);
+-        endDateStr = parseDateString(match[2]);
++      startDateStr = parseDateString(match[1]);
++      endDateStr = parseDateString(match[2]);
+     } else {
+-        match = contentText.match(/(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i);
+-        if (match && match[2]) {
+-            endDateStr = parseDateString(match[2]);
+-        }
++      match = contentText.match(/(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i);
++      if (match && match[2]) {
++        endDateStr = parseDateString(match[2]);
++      }
+     }
+ 
+     const today = new Date().toISOString().split('T')[0];
+@@ -203,4 +222,4 @@
+       images: images,
+     };
+   }
+-}
++}
+\ No newline at end of file
+Index: src/crawler/detail.worker.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { Injectable, Logger } from '@nestjs/common';\nimport { InjectRepository } from '@nestjs/typeorm';\nimport { Repository } from 'typeorm';\nimport { Concorso } from '../concorsi/entities/concorso.entity';\nimport { CrawlConcorsoDto } from '../concorsi/dto/crawl-concorso.dto';\n\nimport { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';\nimport { Job } from 'bullmq';\nimport { DETAIL_QUEUE_NAME } from './crawler.constants';\nimport { LogService } from 'src/log/log.service';\nimport { NotificationService } from 'src/notification/notification.service';\nimport { ICrawlerStrategy } from './strategies/crawler.strategy.interface';\nimport { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';\n\n// Questo tipo è inferito dal DetailWorker\nexport type CrawlStatus = 'created' | 'updated' | 'unchanged' | 'error';\n\n// Tipo di ritorno per il job, usato dal SummaryWorker\ntype DetailJobResult = {\n  status: CrawlStatus;\n  concorso: Concorso;\n};\n\n@Processor(DETAIL_QUEUE_NAME)\n@Injectable()\nexport class DetailWorker extends WorkerHost {\n  private readonly logger = new Logger(DetailWorker.name);\n  private strategies: Map<string, ICrawlerStrategy> = new Map();\n\n  constructor(\n    @InjectRepository(Concorso)\n    private readonly concorsoRepository: Repository<Concorso>,\n\n    // Injections per il worker\n    private readonly logService: LogService,\n    private readonly notificationService: NotificationService,\n    private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,\n  ) {\n    super();\n    // Popola la mappa delle strategie\n    this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);\n  }\n\n  // Helper per il logging\n  private createLogger = (jobId: string | number) => {\n    return (message: string) => {\n      const logMsg = `[Job ${jobId}] ${message}`;\n      this.logger.log(logMsg);\n      this.logService.add(logMsg);\n    };\n  }\n\n  /**\n   * Metodo principale del worker, chiamato da BullMQ\n   * per ogni job nella 'detail-queue'.\n   */\n  async process(job: Job<{ strategyId: string, link: string }>): Promise<DetailJobResult> {\n    const { strategyId, link } = job.data;\n    const log = this.createLogger(job.id);\n\n    log(`Avvio scraping dettaglio per [${strategyId}]: ${link}`);\n\n    const strategy = this.strategies.get(strategyId);\n    if (!strategy) {\n      throw new Error(`[Job ${job.id}] Strategia \"${strategyId}\" non trovata.`);\n    }\n\n    // 1. Esegui lo scraping\n    const dto = await strategy.runDetail(link, log);\n\n    // 2. Salva/Aggiorna nel DB\n    const result = await this.createOrUpdateFromCrawl({\n      ...dto,\n      brand: strategyId,\n    });\n\n    log(`Scraping completato: ${link} (Stato: ${result.status})`);\n\n    // 3. Ritorna il risultato per il SummaryWorker\n    return result;\n  }\n\n\n  /**\n   * Crea o aggiorna un concorso in base ai dati di crawling.\n   * Chiamato da `process()`.\n   */\n  async createOrUpdateFromCrawl(\n    concorsoDto: CrawlConcorsoDto,\n  ): Promise<DetailJobResult> {\n\n    // 1. Cerca se il concorso esiste già\n    const existingConcorso = await this.concorsoRepository.findOneBy({\n      sourceId: concorsoDto.sourceId,\n    });\n\n    // 2. SE ESISTE GIÀ (Logica di aggiornamento)\n    if (existingConcorso) {\n\n      // Fix per le date da stringa a Oggetto Date\n      if (existingConcorso.startDate && typeof existingConcorso.startDate === 'string') {\n        existingConcorso.startDate = new Date(existingConcorso.startDate);\n      }\n      if (existingConcorso.endDate && typeof existingConcorso.endDate === 'string') {\n        existingConcorso.endDate = new Date(existingConcorso.endDate);\n      }\n\n      // 3. Confronto\n      const hasChanges =\n        existingConcorso.title !== concorsoDto.title ||\n        existingConcorso.description !== concorsoDto.description ||\n        existingConcorso.rulesUrl !== concorsoDto.rulesUrl ||\n        existingConcorso.startDate.toISOString() !== concorsoDto.startDate.toISOString() ||\n        existingConcorso.endDate.toISOString() !== concorsoDto.endDate.toISOString();\n\n      if (!hasChanges) {\n        // Se non ci sono modifiche\n        existingConcorso.crawledAt = new Date();\n        const saved = await this.concorsoRepository.save(existingConcorso);\n        return { status: 'unchanged', concorso: saved };\n      }\n\n      // 4. Se ci sono modifiche, fai il merge\n      const updatedConcorso = this.concorsoRepository.merge(\n        existingConcorso,\n        concorsoDto,\n        { crawledAt: new Date() },\n      );\n\n      const saved = await this.concorsoRepository.save(updatedConcorso);\n      this.logger.log(`Concorso aggiornato: ${saved.title}`);\n      return { status: 'updated', concorso: saved };\n    }\n\n    // 5. SE NON ESISTE (Logica di creazione)\n    const newConcorso = this.concorsoRepository.create({\n      ...concorsoDto,\n      crawledAt: new Date(),\n    });\n\n    const saved = await this.concorsoRepository.save(newConcorso);\n    this.logger.log(`Concorso creato: ${saved.title}`);\n    return { status: 'created', concorso: saved };\n  }\n\n  // --- Altri metodi (standard CRUD) ---\n\n  async findAll(): Promise<Concorso[]> {\n    return this.concorsoRepository.find({\n      order: {\n        endDate: 'ASC',\n      },\n    });\n  }\n\n  async findOne(id: string): Promise<Concorso> {\n    return this.concorsoRepository.findOneBy({ id });\n  }\n\n  async remove(id: string): Promise<void> {\n    await this.concorsoRepository.delete(id);\n  }\n\n  // --- Gestore Errori Worker ---\n  @OnWorkerEvent('failed')\n  onFailed(job: Job, err: Error) {\n    const logMsg = `❌ ERRORE DetailWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;\n    this.logger.error(logMsg, err.stack);\n    this.logService.add(logMsg);\n  }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/crawler/detail.worker.ts b/src/crawler/detail.worker.ts
+--- a/src/crawler/detail.worker.ts	(revision 60c06fede030edee0ede0465021fb66ededa4d20)
++++ b/src/crawler/detail.worker.ts	(date 1762110507110)
+@@ -1,171 +1,149 @@
+-import { Injectable, Logger } from '@nestjs/common';
+-import { InjectRepository } from '@nestjs/typeorm';
+-import { Repository } from 'typeorm';
+-import { Concorso } from '../concorsi/entities/concorso.entity';
+-import { CrawlConcorsoDto } from '../concorsi/dto/crawl-concorso.dto';
+-
+ import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
+ import { Job } from 'bullmq';
+-import { DETAIL_QUEUE_NAME } from './crawler.constants';
++import { Injectable, Logger } from '@nestjs/common';
+ import { LogService } from 'src/log/log.service';
+ import { NotificationService } from 'src/notification/notification.service';
+-import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
+-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
++import { Concorso } from 'src/concorsi/entities/concorso.entity';
++import { SUMMARY_QUEUE_NAME } from './crawler.constants';
++import { CrawlStatus } from 'src/concorsi/concorsi.service';
+ 
+-// Questo tipo è inferito dal DetailWorker
+-export type CrawlStatus = 'created' | 'updated' | 'unchanged' | 'error';
+-
+-// Tipo di ritorno per il job, usato dal SummaryWorker
+ type DetailJobResult = {
+   status: CrawlStatus;
+   concorso: Concorso;
+ };
+ 
+-@Processor(DETAIL_QUEUE_NAME)
++@Processor(SUMMARY_QUEUE_NAME)
+ @Injectable()
+ export class DetailWorker extends WorkerHost {
+   private readonly logger = new Logger(DetailWorker.name);
+-  private strategies: Map<string, ICrawlerStrategy> = new Map();
+ 
+   constructor(
+-    @InjectRepository(Concorso)
+-    private readonly concorsoRepository: Repository<Concorso>,
+-
+-    // Injections per il worker
+     private readonly logService: LogService,
+     private readonly notificationService: NotificationService,
+-    private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,
+   ) {
+     super();
+-    // Popola la mappa delle strategie
+-    this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);
+-  }
+-
+-  // Helper per il logging
+-  private createLogger = (jobId: string | number) => {
+-    return (message: string) => {
+-      const logMsg = `[Job ${jobId}] ${message}`;
+-      this.logger.log(logMsg);
+-      this.logService.add(logMsg);
+-    };
+   }
+ 
+   /**
+-   * Metodo principale del worker, chiamato da BullMQ
+-   * per ogni job nella 'detail-queue'.
++   * Esegue il riepilogo DOPO che tutti i job figli (DetailWorker) sono completati.
+    */
+-  async process(job: Job<{ strategyId: string, link: string }>): Promise<DetailJobResult> {
+-    const { strategyId, link } = job.data;
+-    const log = this.createLogger(job.id);
++  async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
++    const { strategyId, isCron, totalChildren } = job.data;
++    const log = (message: string) => {
++      this.logger.log(message);
++      this.logService.add(message);
++    }
+ 
+-    log(`Avvio scraping dettaglio per [${strategyId}]: ${link}`);
++    log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
+ 
+-    const strategy = this.strategies.get(strategyId);
+-    if (!strategy) {
+-      throw new Error(`[Job ${job.id}] Strategia "${strategyId}" non trovata.`);
+-    }
++    // 1. Usa getChildrenValues() per ottenere i *risultati* dei job completati.
++    const completedValues = await job.getChildrenValues<DetailJobResult>(); //
++    const completedResults = Object.values(completedValues); //
+ 
+-    // 1. Esegui lo scraping
+-    const dto = await strategy.runDetail(link, log);
++    // 2. Calcola i falliti
++    const failedCount = totalChildren - completedResults.length; //
+ 
+-    // 2. Salva/Aggiorna nel DB
+-    const result = await this.createOrUpdateFromCrawl({
+-      ...dto,
+-      brand: strategyId,
+-    });
++    const createdItems: Concorso[] = []; //
++    const updatedItems: Concorso[] = []; //
++    const unchangedItems: Concorso[] = []; //
+ 
+-    log(`Scraping completato: ${link} (Stato: ${result.status})`);
++    // 3. Smista i risultati
++    for (const result of completedResults) { //
++      if (result.status === 'created') { //
++        createdItems.push(result.concorso); //
++      } else if (result.status === 'updated') { //
++        updatedItems.push(result.concorso); //
++      } else if (result.status === 'unchanged') { //
++        unchangedItems.push(result.concorso); //
++      }
++    }
+ 
+-    // 3. Ritorna il risultato per il SummaryWorker
+-    return result;
+-  }
++    // Determina l'immagine "eroe"
++    let heroImageUrl: string | undefined = undefined; //
++    if (createdItems.length > 0 && createdItems[0].images?.length > 0) { //
++      heroImageUrl = createdItems[0].images[0]; //
++    } else if (updatedItems.length > 0 && updatedItems[0].images?.length > 0) { //
++      heroImageUrl = updatedItems[0].images[0]; //
++    }
+ 
++    // Costruisci il messaggio di riepilogo (HTML)
++    let summaryMessage = `<strong>Riepilogo Scansione [${strategyId}]</strong><br><br>`; //
+ 
+-  /**
+-   * Crea o aggiorna un concorso in base ai dati di crawling.
+-   * Chiamato da `process()`.
+-   */
+-  async createOrUpdateFromCrawl(
+-    concorsoDto: CrawlConcorsoDto,
+-  ): Promise<DetailJobResult> {
+-
+-    // 1. Cerca se il concorso esiste già
+-    const existingConcorso = await this.concorsoRepository.findOneBy({
+-      sourceId: concorsoDto.sourceId,
+-    });
+-
+-    // 2. SE ESISTE GIÀ (Logica di aggiornamento)
+-    if (existingConcorso) {
++    // --- MODIFICA INIZIO: createdItems (HTML) ---
++    if (createdItems.length > 0) {
++      summaryMessage += `<strong>✅ NUOVI CONCORSI (${createdItems.length}):</strong>`;
++      summaryMessage += `<ul>`; // Inizio lista principale
++      summaryMessage += createdItems.map(c => {
++          const dateString = new Date(c.endDate).toLocaleDateString('it-IT'); //
++          // Ritorna un blocco <li> HTML
++          return `
++<li>
++    <strong>${c.title}</strong>
++    <ul>
++        <li><strong>Brand:</strong> ${c.brand}</li>
++        <li><strong>Scadenza:</strong> ${dateString}</li>
++        <li><strong>Regolamento:</strong> <a href="${c.rulesUrl}">Link</a></li>
++    </ul>
++</li>
++`;
++        }
++      ).join(''); // Join senza newline aggiuntive
++      summaryMessage += `</ul><br>`; // Fine lista principale
++    }
++    // --- MODIFICA FINE: createdItems (HTML) ---
+ 
+-      // Fix per le date da stringa a Oggetto Date
+-      if (existingConcorso.startDate && typeof existingConcorso.startDate === 'string') {
+-        existingConcorso.startDate = new Date(existingConcorso.startDate);
+-      }
+-      if (existingConcorso.endDate && typeof existingConcorso.endDate === 'string') {
+-        existingConcorso.endDate = new Date(existingConcorso.endDate);
+-      }
+-
+-      // 3. Confronto
+-      const hasChanges =
+-        existingConcorso.title !== concorsoDto.title ||
+-        existingConcorso.description !== concorsoDto.description ||
+-        existingConcorso.rulesUrl !== concorsoDto.rulesUrl ||
+-        existingConcorso.startDate.toISOString() !== concorsoDto.startDate.toISOString() ||
+-        existingConcorso.endDate.toISOString() !== concorsoDto.endDate.toISOString();
++    // --- MODIFICA INIZIO: updatedItems (HTML) ---
++    if (updatedItems.length > 0) {
++      summaryMessage += `<strong>🔄 CONCORSI AGGIORNATI (${updatedItems.length}):</strong>`;
++      summaryMessage += `<ul>`; // Inizio lista principale
++      summaryMessage += updatedItems.map(c => {
++          const dateString = new Date(c.endDate).toLocaleDateString('it-IT'); //
++          return `
++<li>
++    <strong>${c.title}</strong>
++    <ul>
++        <li><strong>Brand:</strong> ${c.brand}</li>
++        <li><strong>Scadenza:</strong> ${dateString}</li>
++        <li><strong>Regolamento:</strong> <a href="${c.rulesUrl}">Link</a></li>
++    </ul>
++</li>
++`;
++        }
++      ).join(''); // Join senza newline aggiuntive
++      summaryMessage += `</ul><br>`; // Fine lista principale
++    }
++    // --- MODIFICA FINE: updatedItems (HTML) ---
+ 
+-      if (!hasChanges) {
+-        // Se non ci sono modifiche
+-        existingConcorso.crawledAt = new Date();
+-        const saved = await this.concorsoRepository.save(existingConcorso);
+-        return { status: 'unchanged', concorso: saved };
+-      }
++    if (unchangedItems.length > 0) { //
++      summaryMessage += `<strong>ℹ️ CONCORSI INVARIATI (${unchangedItems.length})</strong><br><br>`; //
++    }
+ 
+-      // 4. Se ci sono modifiche, fai il merge
+-      const updatedConcorso = this.concorsoRepository.merge(
+-        existingConcorso,
+-        concorsoDto,
+-        { crawledAt: new Date() },
+-      );
+-
+-      const saved = await this.concorsoRepository.save(updatedConcorso);
+-      this.logger.log(`Concorso aggiornato: ${saved.title}`);
+-      return { status: 'updated', concorso: saved };
++    if (createdItems.length === 0 && updatedItems.length === 0 && failedCount === 0) { //
++      summaryMessage += `ℹ️ Nessun concorso nuovo o aggiornato. Tutto sincronizzato.<br><br>`; //
+     }
+ 
+-    // 5. SE NON ESISTE (Logica di creazione)
+-    const newConcorso = this.concorsoRepository.create({
+-      ...concorsoDto,
+-      crawledAt: new Date(),
+-    });
+-
+-    const saved = await this.concorsoRepository.save(newConcorso);
+-    this.logger.log(`Concorso creato: ${saved.title}`);
+-    return { status: 'created', concorso: saved };
+-  }
++    if (failedCount > 0) { //
++      summaryMessage += `<strong>❌ ATTENZIONE: ${failedCount} (su ${totalChildren}) job falliti.</strong><br>(Controllare i log per i dettagli)<br><br>`; //
++    }
+ 
+-  // --- Altri metodi (standard CRUD) ---
++    summaryMessage += `<strong>Totale:</strong> ${createdItems.length} nuovi, ${updatedItems.length} aggiornati, ${unchangedItems.length} invariati, ${failedCount} falliti.`; //
+ 
+-  async findAll(): Promise<Concorso[]> {
+-    return this.concorsoRepository.find({
+-      order: {
+-        endDate: 'ASC',
+-      },
+-    });
+-  }
++    // Per il logging, potremmo voler mantenere una versione senza HTML,
++    // ma per semplicità inoltriamo lo stesso messaggio.
++    log(summaryMessage); //
++    await this.notificationService.sendNotification(summaryMessage, heroImageUrl); //
+ 
+-  async findOne(id: string): Promise<Concorso> {
+-    return this.concorsoRepository.findOneBy({ id });
+-  }
+-
+-  async remove(id: string): Promise<void> {
+-    await this.concorsoRepository.delete(id);
++    if (isCron) { //
++      log(`[${strategyId}] ha completato la sua parte di CRON.`); //
++    }
+   }
+ 
+-  // --- Gestore Errori Worker ---
+   @OnWorkerEvent('failed')
+-  onFailed(job: Job, err: Error) {
+-    const logMsg = `❌ ERRORE DetailWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;
+-    this.logger.error(logMsg, err.stack);
+-    this.logService.add(logMsg);
++  onFailed(job: Job, err: Error) { //
++    const logMsg = `❌ ERRORE CRITICO SummaryWorker: Job [${job.id}] fallito: ${err.message}`; //
++    this.logger.error(logMsg, err.stack); //
++    this.logService.add(logMsg); //
++    // Questa notifica di errore è testuale, va bene così
++    this.notificationService.sendNotification(logMsg); //
+   }
+ }
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"850955d4-75eb-48a2-8597-8140c67894fe\" name=\"Changes\" comment=\"\" />\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"ProblemsViewState\">\n    <option name=\"selectedTabId\" value=\"ProjectErrors\" />\n  </component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 4\n}</component>\n  <component name=\"ProjectId\" id=\"34vASPgGhWf0nkPoWOVpByIwkwO\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\">{\n  &quot;keyToString&quot;: {\n    &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,\n    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\n    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,\n    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,\n    &quot;SHELLCHECK.PATH&quot;: &quot;/Users/matteoscanferla/Library/Application Support/JetBrains/WebStorm2025.2/plugins/Shell Script/shellcheck&quot;,\n    &quot;Shell Script.crea_backend.sh.executor&quot;: &quot;Run&quot;,\n    &quot;git-widget-placeholder&quot;: &quot;main&quot;,\n    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,\n    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,\n    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,\n    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\n    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,\n    &quot;ts.external.directory.path&quot;: &quot;/Users/matteoscanferla/Desktop/backend-concorsi/node_modules/typescript/lib&quot;,\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\n  }\n}</component>\n  <component name=\"RunManager\" selected=\"Shell Script.crea_backend.sh\">\n    <configuration name=\"crea_backend.sh\" type=\"ShConfigurationType\" temporary=\"true\">\n      <option name=\"SCRIPT_TEXT\" value=\"\" />\n      <option name=\"INDEPENDENT_SCRIPT_PATH\" value=\"true\" />\n      <option name=\"SCRIPT_PATH\" value=\"$PROJECT_DIR$/crea_backend.sh\" />\n      <option name=\"SCRIPT_OPTIONS\" value=\"\" />\n      <option name=\"INDEPENDENT_SCRIPT_WORKING_DIRECTORY\" value=\"true\" />\n      <option name=\"SCRIPT_WORKING_DIRECTORY\" value=\"$PROJECT_DIR$\" />\n      <option name=\"INDEPENDENT_INTERPRETER_PATH\" value=\"true\" />\n      <option name=\"INTERPRETER_PATH\" value=\"/bin/bash\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"EXECUTE_IN_TERMINAL\" value=\"true\" />\n      <option name=\"EXECUTE_SCRIPT_FILE\" value=\"true\" />\n      <envs />\n      <method v=\"2\" />\n    </configuration>\n    <configuration default=\"true\" type=\"docker-deploy\" factoryName=\"docker-compose.yml\" temporary=\"true\">\n      <deployment type=\"docker-compose.yml\">\n        <settings />\n      </deployment>\n      <method v=\"2\" />\n    </configuration>\n    <configuration name=\"docker-compose.yml: Compose Deployment\" type=\"docker-deploy\" factoryName=\"docker-compose.yml\" temporary=\"true\" server-name=\"Docker\">\n      <deployment type=\"docker-compose.yml\">\n        <settings>\n          <option name=\"sourceFilePath\" value=\"docker-compose.yml\" />\n        </settings>\n      </deployment>\n      <method v=\"2\" />\n    </configuration>\n    <recent_temporary>\n      <list>\n        <item itemvalue=\"Shell Script.crea_backend.sh\" />\n        <item itemvalue=\"Docker.docker-compose.yml: Compose Deployment\" />\n      </list>\n    </recent_temporary>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.27397.92\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"850955d4-75eb-48a2-8597-8140c67894fe\" name=\"Changes\" comment=\"\" />\n      <created>1762083671322</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1762083671322</updated>\n      <workItem from=\"1762083672604\" duration=\"16250000\" />\n    </task>\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 60c06fede030edee0ede0465021fb66ededa4d20)
++++ b/.idea/workspace.xml	(date 1762110737656)
+@@ -4,7 +4,12 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="" />
++    <list default="true" id="850955d4-75eb-48a2-8597-8140c67894fe" name="Changes" comment="initial commit">
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/src/crawler/scan.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/scan.worker.ts" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
++    </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+@@ -13,6 +18,18 @@
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+   </component>
++  <component name="GitHubPullRequestSearchHistory">{
++  &quot;lastFilter&quot;: {
++    &quot;state&quot;: &quot;OPEN&quot;,
++    &quot;assignee&quot;: &quot;Matt3010&quot;
++  }
++}</component>
++  <component name="GithubPullRequestsUISettings">{
++  &quot;selectedUrlAndAccountId&quot;: {
++    &quot;url&quot;: &quot;https://github.com/Matt3010/cerca-concorsi.git&quot;,
++    &quot;accountId&quot;: &quot;24393440-9c3a-436d-9f63-67059e0ac78c&quot;
++  }
++}</component>
+   <component name="ProblemsViewState">
+     <option name="selectedTabId" value="ProjectErrors" />
+   </component>
+@@ -34,6 +51,7 @@
+     &quot;SHELLCHECK.PATH&quot;: &quot;/Users/matteoscanferla/Library/Application Support/JetBrains/WebStorm2025.2/plugins/Shell Script/shellcheck&quot;,
+     &quot;Shell Script.crea_backend.sh.executor&quot;: &quot;Run&quot;,
+     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
++    &quot;last_opened_file_path&quot;: &quot;/Users/matteoscanferla/Desktop/backend-concorsi&quot;,
+     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+@@ -44,6 +62,11 @@
+     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+   }
+ }</component>
++  <component name="RecentsManager">
++    <key name="CopyFile.RECENT_KEYS">
++      <recent name="$PROJECT_DIR$" />
++    </key>
++  </component>
+   <component name="RunManager" selected="Shell Script.crea_backend.sh">
+     <configuration name="crea_backend.sh" type="ShConfigurationType" temporary="true">
+       <option name="SCRIPT_TEXT" value="" />
+@@ -95,11 +118,24 @@
+       <option name="number" value="Default" />
+       <option name="presentableId" value="Default" />
+       <updated>1762083671322</updated>
+-      <workItem from="1762083672604" duration="16250000" />
++      <workItem from="1762083672604" duration="17230000" />
+     </task>
++    <task id="LOCAL-00001" summary="initial commit">
++      <option name="closed" value="true" />
++      <created>1762100253051</created>
++      <option name="number" value="00001" />
++      <option name="presentableId" value="LOCAL-00001" />
++      <option name="project" value="LOCAL" />
++      <updated>1762100253051</updated>
++    </task>
++    <option name="localTasksCounter" value="2" />
+     <servers />
+   </component>
+   <component name="TypeScriptGeneratedFilesManager">
+     <option name="version" value="3" />
+   </component>
++  <component name="VcsManagerConfiguration">
++    <MESSAGE value="initial commit" />
++    <option name="LAST_COMMIT_MESSAGE" value="initial commit" />
++  </component>
+ </project>
+\ No newline at end of file

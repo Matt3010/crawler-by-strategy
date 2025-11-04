@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { Type } from 'class-transformer'; // <-- 1. IMPORT
+import { Type } from 'class-transformer';
 
 @Entity('concorsi')
 export class Concorso {
@@ -23,11 +23,11 @@ export class Concorso {
   description: string;
 
   @Column({ type: 'date' })
-  @Type(() => Date) // <-- 2. ADD DECORATOR
+  @Type((): DateConstructor => Date)
   startDate: Date;
 
   @Column({ type: 'date' })
-  @Type(() => Date) // <-- 3. ADD DECORATOR
+  @Type((): DateConstructor => Date)
   endDate: Date;
 
   @Column({ type: 'varchar', length: 500 })
@@ -44,14 +44,14 @@ export class Concorso {
   sourceId: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  @Type(() => Date) // <-- 4. ADD DECORATOR
+  @Type((): DateConstructor => Date)
   crawledAt: Date;
 
   @CreateDateColumn()
-  @Type(() => Date) // <-- 5. ADD DECORATOR
+  @Type((): DateConstructor  => Date)
   createdAt: Date;
 
   @UpdateDateColumn()
-  @Type(() => Date) // <-- 6. ADD DECORATOR
+  @Type((): DateConstructor  => Date)
   updatedAt: Date;
 }
