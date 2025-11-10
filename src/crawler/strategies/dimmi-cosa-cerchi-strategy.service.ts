@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { CrawlConcorsoDto } from 'src/concorsi/dto/crawl-concorso.dto';
 import { ICrawlerStrategy, ProcessResult } from './crawler.strategy.interface';
 import * as cheerio from 'cheerio';
-import { ConcorsiService } from 'src/concorsi/concorsi.service';
+import {ConcorsiService, CrawlStatus} from 'src/concorsi/concorsi.service';
 import { Concorso } from 'src/concorsi/entities/concorso.entity';
 import { TargetedNotification } from 'src/notification/notification.types';
 import {Cheerio, CheerioAPI} from "cheerio";
@@ -26,8 +26,8 @@ const parseDateString: (dateString: string) => (string | null) = (dateString: st
 
 @Injectable()
 export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
-    private readonly logger = new Logger(DimmiCosaCerchiStrategy.name);
-    private readonly MAX_PAGES_TO_SCRAPE = 6;
+    private readonly logger: Logger = new Logger(DimmiCosaCerchiStrategy.name);
+    private readonly MAX_PAGES_TO_SCRAPE: number = 6;
     private readonly proxyUrl: string;
 
     private readonly friendlyName: string = 'DimmiCosaCerchi';
@@ -164,7 +164,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         const $: CheerioAPI = cheerio.load(html);
 
         const title: string = $(this.DETAIL_TITLE_SELECTOR).text().trim() || 'Title not found';
-        const description = $(this.DETAIL_DESCRIPTION_SELECTOR).first().text().trim() || '';
+        const description: string = $(this.DETAIL_DESCRIPTION_SELECTOR).first().text().trim() || '';
 
         let rulesUrl: string | undefined = null;
         $(this.DETAIL_RULES_LINK_SELECTOR).each((_, el) => {
@@ -174,15 +174,15 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
             }
         });
 
-        const contentText = $(this.DETAIL_CONTENT_SELECTOR).text() || '';
+        const contentText: string = $(this.DETAIL_CONTENT_SELECTOR).text() || '';
 
         const images: string[] = [];
-        const imageUrl =
+        const imageUrl: string =
             $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
             $(this.DETAIL_IMAGE_SELECTOR_OG).attr('content');
 
         if (imageUrl) {
-            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
+            const absoluteUrl: string = new URL(imageUrl, new URL(link).origin).href;
             images.push(absoluteUrl);
         }
 
@@ -202,7 +202,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
 
     async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>): Promise<ProcessResult> {
         const dto: CrawlConcorsoDto = { ...detailData, brand: this.getStrategyId() };
-        const result = await this.concorsiService.createOrUpdateFromCrawl(dto);
+        const result: { concorso: Concorso; status: CrawlStatus } = await this.concorsiService.createOrUpdateFromCrawl(dto);
         return { status: result.status, entity: result.concorso };
     }
 
@@ -219,20 +219,21 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
             grouped[result.status]?.push(concorso);
         }
 
-        const heroImageUrl = grouped.created[0]?.images?.[0] ?? grouped.updated[0]?.images?.[0];
+        const heroImageUrl: string = grouped.created[0]?.images?.[0] ?? grouped.updated[0]?.images?.[0];
 
-        const buildSection = (items: Concorso[], emoji: string, title: string) =>
+        const buildSection: (items: Concorso[], emoji: string, title: string) => string = (items: Concorso[], emoji: string, title: string): string =>
             items.length === 0
                 ? ''
-                : `*${emoji} ${title} ${items.length}:*\n` +
+                : `${emoji} ${title} ${items.length}:\n` +
                 items
-                    .map(c => {
-                        const shortDesc = c.description.substring(0, 80).trimEnd() + '...';
-                        return `*${c.title}*\n_${shortDesc}_\n[View Details](${c.source}) | [Read Rules](${c.rulesUrl})`;
+                    .map((c: Concorso): string => {
+                        const shortDesc: string = c.description.substring(0, 80).trimEnd() + '...';
+                        return `${c.title}\n_${shortDesc}_\n[View Details](${c.source})\n[Read Rules](${c.rulesUrl})`;
                     })
                     .join('\n\n') + '\n\n';
 
-        let summaryMessage = `*Contest Updates from ${this.friendlyName}*\n\n`;
+
+        let summaryMessage: string = `*Contest Updates from ${this.friendlyName}*\n\n`;
         summaryMessage += buildSection(grouped.created, '✅', 'New Contests');
         summaryMessage += buildSection(grouped.updated, '🔄', 'Updated Contests');
 
@@ -251,9 +252,9 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         summaryMessage += `*Final Summary:* ${grouped.created.length} new, ${grouped.updated.length} updated, ${grouped.unchanged.length} unchanged, ${failedCount} failed.`;
 
         const channelsKey = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig = this.configService.get<string>(channelsKey);
-        const targetChannels = channelsConfig
-            ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean)
+        const channelsConfig: string = this.configService.get<string>(channelsKey);
+        const targetChannels: string[] = channelsConfig
+            ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean)
             : null;
 
         this.logger.log(
