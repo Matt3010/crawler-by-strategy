@@ -8,8 +8,8 @@ import {
     ICrawlerStrategy,
     ProcessResult,
 } from './strategies/crawler.strategy.interface';
-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
 import { TargetedNotification } from "../notification/notification.types";
+import { StrategyRegistry } from './strategy.registry.service';
 
 type DetailJobResult = ProcessResult;
 
@@ -17,18 +17,13 @@ type DetailJobResult = ProcessResult;
 @Injectable()
 export class SummaryWorker extends WorkerHost {
     private readonly logger: Logger = new Logger(SummaryWorker.name);
-    private readonly strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
         private readonly logService: LogService,
         private readonly notificationService: NotificationService,
-        private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,
+        private readonly registry: StrategyRegistry,
     ) {
         super();
-        this.strategies.set(
-            this.dimmicosacerchi.getStrategyId(),
-            this.dimmicosacerchi,
-        );
     }
 
     async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
@@ -40,7 +35,7 @@ export class SummaryWorker extends WorkerHost {
 
         log(`[Job ${job.id}] Starting summary for [${strategyId}]...`);
 
-        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.registry.get(strategyId); // <-- Modificato
         if (!strategy) {
             const errorMsg = `❌ CRITICAL ERROR: Strategy [${strategyId}] not found in SummaryWorker. Unable to generate summary.`;
             log(errorMsg);

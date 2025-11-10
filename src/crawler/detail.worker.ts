@@ -7,7 +7,7 @@ import {
     ICrawlerStrategy,
     ProcessResult,
 } from './strategies/crawler.strategy.interface';
-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
+import { StrategyRegistry } from './strategy.registry.service';
 
 export type DetailJobResult = ProcessResult;
 
@@ -15,14 +15,12 @@ export type DetailJobResult = ProcessResult;
 @Injectable()
 export class DetailWorker extends WorkerHost {
     private readonly logger: Logger = new Logger(DetailWorker.name);
-    private readonly strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
         private readonly logService: LogService,
-        private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,
+        private readonly registry: StrategyRegistry,
     ) {
         super();
-        this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);
     }
 
     private readonly createLogger: (jobId: (string | number)) => (message: string) => void = (jobId: string | number): (message: string) => void => {
@@ -39,7 +37,7 @@ export class DetailWorker extends WorkerHost {
 
         log(`Starting detail scraping for [${strategyId}]: ${link}`);
 
-        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.registry.get(strategyId);
         if (!strategy) {
             throw new Error(`[Job ${job.id}] Strategy "${strategyId}" not found.`);
         }

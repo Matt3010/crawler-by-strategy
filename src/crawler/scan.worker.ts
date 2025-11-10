@@ -2,25 +2,23 @@ import {OnWorkerEvent, Processor, WorkerHost} from '@nestjs/bullmq';
 import {FlowProducer, Job} from 'bullmq';
 import {Inject, Injectable, Logger} from '@nestjs/common';
 import {ICrawlerStrategy} from './strategies/crawler.strategy.interface';
-import {DimmiCosaCerchiStrategy} from './strategies/dimmi-cosa-cerchi-strategy.service';
 import {LogService} from 'src/log/log.service';
 import {NotificationService} from 'src/notification/notification.service';
 import {DETAIL_QUEUE_NAME, FLOW_PRODUCER, SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME} from './crawler.constants';
+import { StrategyRegistry } from './strategy.registry.service';
 
 @Processor(SCAN_QUEUE_NAME)
 @Injectable()
 export class ScanWorker extends WorkerHost {
     private readonly logger: Logger = new Logger(ScanWorker.name);
-    private readonly strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
         @Inject(FLOW_PRODUCER) private readonly flowProducer: FlowProducer,
         private readonly logService: LogService,
         private readonly notificationService: NotificationService,
-        private readonly dimmicosacerchi: DimmiCosaCerchiStrategy,
+        private readonly registry: StrategyRegistry,
     ) {
         super();
-        this.strategies.set(this.dimmicosacerchi.getStrategyId(), this.dimmicosacerchi);
     }
 
     private readonly createLogger: (jobId: (string | number)) => (message: string) => void = (jobId: string | number): (message: string) => void => {
@@ -36,7 +34,7 @@ export class ScanWorker extends WorkerHost {
         const { strategyId, isCron } = job.data;
         log(`Scan job received for [${strategyId}]...`);
 
-        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.registry.get(strategyId); // <-- Modificato
         if (!strategy) throw new Error(`Strategy "${strategyId}" not found.`);
 
         const targetUrl: string = strategy.getBaseUrl();
@@ -60,7 +58,18 @@ export class ScanWorker extends WorkerHost {
                 removeOnFail: number;
                 delay: number
             }
-        }[] = detailLinks.map((link: string) => ({
+        }[] = detailLinks.map((link: string): {
+            name: "scrape-detail";
+            data: { strategyId: string; link: string };
+            queueName: string;
+            opts: {
+                attempts: number;
+                backoff: { type: string; delay: number };
+                removeOnComplete: boolean;
+                removeOnFail: number;
+                delay: number
+            }
+        } => ({
             name: 'scrape-detail',
             data: { strategyId, link },
             queueName: DETAIL_QUEUE_NAME,
