@@ -17,7 +17,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    # --- AGGIUNTO: Etichetta per Watchtower ---
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
@@ -27,7 +26,6 @@ services:
     ports:
       - "6379:6379"
     restart: unless-stopped
-    # --- AGGIUNTO: Etichetta per Watchtower ---
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 

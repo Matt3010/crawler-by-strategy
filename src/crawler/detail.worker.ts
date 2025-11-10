@@ -37,24 +37,24 @@ export class DetailWorker extends WorkerHost {
         const { strategyId, link } = job.data;
         const log: (message: string) => void = this.createLogger(job.id);
 
-        log(`Avvio scraping dettaglio per [${strategyId}]: ${link}`);
+        log(`Starting detail scraping for [${strategyId}]: ${link}`);
 
         const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
         if (!strategy) {
-            throw new Error(`[Job ${job.id}] Strategia "${strategyId}" non trovata.`);
+            throw new Error(`[Job ${job.id}] Strategy "${strategyId}" not found.`);
         }
 
         const detailData: any = await strategy.runDetail(link, log);
         const result: ProcessResult = await strategy.processDetail(detailData, log);
 
-        log(`Scraping completato: ${link} (Stato: ${result.status})`);
+        log(`Scraping completed: ${link} (Status: ${result.status})`);
 
         return result;
     }
 
     @OnWorkerEvent('failed')
     onFailed(job: Job, err: Error): void {
-        const logMsg = `❌ ERRORE DetailWorker: Job [${job.id}] fallito per [${job.data.strategyId}]: ${err.message}`;
+        const logMsg = `❌ ERROR DetailWorker: Job [${job.id}] failed for [${job.data.strategyId}]: ${err.message}`;
         this.logger.error(logMsg, err.stack);
         this.logService.add(logMsg);
     }

@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="refactor: optimize crawler service and improve logging structure">
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: add new endpoint to force crawl a single strategy and improve error handling">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose-prod.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/log/log.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/log/log.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/notification.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +78,7 @@
       <updated>1762244727055</updated>
       <workItem from="1762244728076" duration="2476000" />
       <workItem from="1762247240035" duration="285000" />
-      <workItem from="1762762225009" duration="3149000" />
+      <workItem from="1762762225009" duration="4606000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -104,7 +104,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762247384941</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="refactor: optimize crawler service and improve logging structure">
+      <option name="closed" value="true" />
+      <created>1762765417128</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1762765417128</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -115,6 +123,7 @@
     <MESSAGE value="removed som files from git" />
     <MESSAGE value="updated gitignore and dockerignore" />
     <MESSAGE value="refactor: optimize crawler service and improve logging structure" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: optimize crawler service and improve logging structure" />
+    <MESSAGE value="feat: add new endpoint to force crawl a single strategy and improve error handling" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add new endpoint to force crawl a single strategy and improve error handling" />
   </component>
 </project>
