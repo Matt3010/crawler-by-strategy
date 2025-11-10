@@ -9,7 +9,7 @@ import {
     ProcessResult,
 } from './strategies/crawler.strategy.interface';
 import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
-import {TargetedNotification} from "../notification/notification.types";
+import { TargetedNotification } from "../notification/notification.types";
 
 type DetailJobResult = ProcessResult;
 
@@ -38,11 +38,11 @@ export class SummaryWorker extends WorkerHost {
             this.logService.add(message);
         }
 
-        log(`[Job ${job.id}] Avvio riepilogo per [${strategyId}]...`);
+        log(`[Job ${job.id}] Starting summary for [${strategyId}]...`);
 
         const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
         if (!strategy) {
-            const errorMsg = `❌ ERRORE CRITICO: Strategia [${strategyId}] non trovata nel SummaryWorker. Impossibile generare il riepilogo.`;
+            const errorMsg = `❌ CRITICAL ERROR: Strategy [${strategyId}] not found in SummaryWorker. Unable to generate summary.`;
             log(errorMsg);
             await this.notificationService.sendNotification(errorMsg);
             return;
@@ -65,13 +65,13 @@ export class SummaryWorker extends WorkerHost {
         );
 
         if (isCron) {
-            log(`[${strategyId}] ha completato la sua parte di CRON.`);
+            log(`[${strategyId}] has completed its part of the CRON job.`);
         }
     }
 
     @OnWorkerEvent('failed')
     onFailed(job: Job, err: Error): void {
-        const logMsg = `❌ ERRORE CRITICO SummaryWorker: Job [${job.id}] fallito: ${err.message}`;
+        const logMsg = `❌ CRITICAL ERROR SummaryWorker: Job [${job.id}] failed: ${err.message}`;
         this.logger.error(logMsg, err.stack);
         this.logService.add(logMsg);
         this.notificationService.sendNotification(logMsg);

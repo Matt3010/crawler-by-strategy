@@ -6,11 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: add new endpoint to force crawl a single strategy and improve error handling">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose-prod.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +73,7 @@
       <updated>1762244727055</updated>
       <workItem from="1762244728076" duration="2476000" />
       <workItem from="1762247240035" duration="285000" />
-      <workItem from="1762762225009" duration="4606000" />
+      <workItem from="1762762225009" duration="5018000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -112,7 +107,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762765417128</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="feat: add new endpoint to force crawl a single strategy and improve error handling">
+      <option name="closed" value="true" />
+      <created>1762767094785</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1762767094785</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
