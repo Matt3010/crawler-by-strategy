@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: add new endpoint to force crawl a single strategy and improve error handling">
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="fix: reduce Watchtower poll interval from 600 to 60 seconds in docker-compose">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.controller.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,6 +56,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "npm.docker:deploy.executor": "Run",
     "ts.external.directory.path": "A:\\RepoProjects\\cerca-concorsi\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
@@ -63,6 +65,23 @@
     <key name="CopyFile.RECENT_KEYS">
       <recent name="A:\RepoProjects\cerca-concorsi" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="docker:deploy" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="docker:deploy" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.docker:deploy" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -115,7 +134,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762767094785</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="fix: reduce Watchtower poll interval from 600 to 60 seconds in docker-compose">
+      <option name="closed" value="true" />
+      <created>1762776431984</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1762776431984</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -127,6 +154,7 @@
     <MESSAGE value="updated gitignore and dockerignore" />
     <MESSAGE value="refactor: optimize crawler service and improve logging structure" />
     <MESSAGE value="feat: add new endpoint to force crawl a single strategy and improve error handling" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: add new endpoint to force crawl a single strategy and improve error handling" />
+    <MESSAGE value="fix: reduce Watchtower poll interval from 600 to 60 seconds in docker-compose" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: reduce Watchtower poll interval from 600 to 60 seconds in docker-compose" />
   </component>
 </project>

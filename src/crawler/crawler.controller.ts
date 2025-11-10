@@ -9,7 +9,7 @@ export class CrawlerController {
 
     @Post('run')
     @ApiOperation({ summary: 'Force execution of ALL active strategies' })
-    async forceCrawl(): Promise<any> {
+    public async forceCrawl(): Promise<any> {
         return await this.crawlerService.forceCrawl();
     }
 
@@ -21,7 +21,7 @@ export class CrawlerController {
         description: 'ID of the strategy to execute (e.g. dimmicosacerchi)',
         example: 'dimmicosacerchi'
     })
-    async forceCrawlStrategy(@Param('strategyId') strategyId: string): Promise<any> {
+    public async forceCrawlStrategy(@Param('strategyId') strategyId: string): Promise<any> {
         try {
             return await this.crawlerService.forceCrawlStrategy(strategyId);
         } catch (error) {
@@ -36,7 +36,7 @@ export class CrawlerController {
     @Get('logs')
     @ApiOperation({ summary: 'View the latest crawler logs from Redis' })
     @ApiQuery({ name: 'count', required: false, description: 'Number of logs to retrieve (default 100)' })
-    async getLogs(@Query('count') count?: string): Promise<{ logs: string[] }> {
+    public async getLogs(@Query('count') count?: string): Promise<{ logs: string[] }> {
         const logCount: number = count ? Number.parseInt(count, 10) : 100;
         return {
             logs: await this.crawlerService.getLogs(logCount),
