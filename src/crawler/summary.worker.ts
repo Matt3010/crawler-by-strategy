@@ -17,7 +17,7 @@ type DetailJobResult = ProcessResult;
 @Injectable()
 export class SummaryWorker extends WorkerHost {
     private readonly logger: Logger = new Logger(SummaryWorker.name);
-    private strategies: Map<string, ICrawlerStrategy> = new Map();
+    private readonly strategies: Map<string, ICrawlerStrategy> = new Map();
 
     constructor(
         private readonly logService: LogService,

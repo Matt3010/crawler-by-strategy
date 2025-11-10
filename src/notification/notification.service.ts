@@ -7,8 +7,8 @@ import { NotificationPayload, TargetedNotification } from './notification.types'
 @Injectable()
 export class NotificationService {
     private readonly logger: Logger = new Logger(NotificationService.name);
-    private activeStrategies: INotificationStrategy[] = [];
-    private activeStrategiesMap: Map<string, INotificationStrategy> = new Map();
+    private readonly activeStrategies: INotificationStrategy[] = [];
+    private readonly activeStrategiesMap: Map<string, INotificationStrategy> = new Map();
 
     constructor(
         private readonly configService: ConfigService,
@@ -28,7 +28,7 @@ export class NotificationService {
             .filter(Boolean);
 
         for (const id of activeStrategyIds) {
-            const strategy = allStrategies[id];
+            const strategy: INotificationStrategy = allStrategies[id];
             if (strategy) {
                 this.activeStrategies.push(strategy);
                 this.activeStrategiesMap.set(id, strategy);
@@ -67,7 +67,7 @@ export class NotificationService {
         } else {
             this.logger.log(`Invio notifica ai canali target: ${channels.join(', ')}`);
             for (const channelId of channels) {
-                const strategy = this.activeStrategiesMap.get(channelId);
+                const strategy: INotificationStrategy = this.activeStrategiesMap.get(channelId);
                 if (strategy) {
                     targetStrategies.push(strategy);
                 } else {
@@ -81,8 +81,8 @@ export class NotificationService {
             return;
         }
 
-        const promises = targetStrategies.map(strategy =>
-            strategy.sendNotification(payload).catch(err => {
+        const promises: Promise<void>[] = targetStrategies.map((strategy: INotificationStrategy): Promise<void> =>
+            strategy.sendNotification(payload).catch((err: any): void => {
                 this.logger.error(`Fallimento strategia [${strategy.getStrategyId()}]: ${err.message}`, err.stack);
             })
         );

@@ -3,9 +3,9 @@ import { Redis } from 'ioredis';
 
 @Injectable()
 export class LogService implements OnModuleDestroy {
-  private readonly logger = new Logger(LogService.name);
-  private readonly LOG_KEY = 'crawler:logs';
-  private readonly MAX_LOG_SIZE = 500;
+  private readonly logger: Logger = new Logger(LogService.name);
+  private readonly LOG_KEY: string = 'crawler:logs';
+  private readonly MAX_LOG_SIZE: number = 500;
 
   constructor(@Inject('REDIS_LOG_CLIENT') private readonly redis: Redis) {}
 

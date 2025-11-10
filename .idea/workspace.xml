@@ -4,10 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="updated gitignore and dockerignore">
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="refactor: optimize crawler service and improve logging structure">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose-prod.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose-prod.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/log/log.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/log/log.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notification/notification.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +35,7 @@
     &quot;accountId&quot;: &quot;24393440-9c3a-436d-9f63-67059e0ac78c&quot;
   }
 }</component>
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="A:\php\php8.3\php.exe" />
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
 }</component>
@@ -50,23 +54,20 @@
     "RunOnceActivity.git.unshallow": "true",
     "SONARLINT_PRECOMMIT_ANALYSIS": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/matteoscanferla/Desktop/backend-concorsi",
+    "last_opened_file_path": "A:/RepoProjects/cerca-concorsi",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "ts.external.directory.path": "/Users/matteoscanferla/Desktop/backend-concorsi/node_modules/typescript/lib",
+    "ts.external.directory.path": "A:\\RepoProjects\\cerca-concorsi\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-PS-252.27397.112" />
-        <option value="bundled-php-predefined-a98d8de5180a-b35feea871ed-com.jetbrains.php.sharedIndexes-PS-252.27397.112" />
-      </set>
-    </attachedChunks>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="A:\RepoProjects\cerca-concorsi" />
+    </key>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -77,6 +78,7 @@
       <updated>1762244727055</updated>
       <workItem from="1762244728076" duration="2476000" />
       <workItem from="1762247240035" duration="285000" />
+      <workItem from="1762762225009" duration="3149000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -112,6 +114,7 @@
     <MESSAGE value="added types where possible, any should be checked and changed with a specific type" />
     <MESSAGE value="removed som files from git" />
     <MESSAGE value="updated gitignore and dockerignore" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated gitignore and dockerignore" />
+    <MESSAGE value="refactor: optimize crawler service and improve logging structure" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: optimize crawler service and improve logging structure" />
   </component>
 </project>
