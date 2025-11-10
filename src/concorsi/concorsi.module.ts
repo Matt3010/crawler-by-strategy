@@ -5,7 +5,7 @@ import { ConcorsiController } from './concorsi.controller';
 import { Concorso } from './entities/concorso.entity';
 
 @Module({
-  imports: [ TypeOrmModule.forFeature([Concorso]) ],
+  imports: [TypeOrmModule.forFeature([Concorso])],
   controllers: [ConcorsiController],
   providers: [ConcorsiService],
   exports: [ConcorsiService, TypeOrmModule],

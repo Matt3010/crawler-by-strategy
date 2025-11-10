@@ -4,14 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="refactor: standardize formatting and improve type annotations in ConcorsiService and DimmiCosaCerchiStrategy">
-      <change afterPath="$PROJECT_DIR$/src/crawler/strategy.registry.service.ts" afterDir="false" />
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: implement strategy registry for managing crawler strategies">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.constants.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/scan.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/scan.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/create-concorso.dto.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/update-concorso.dto.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -163,7 +162,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762779533812</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="feat: implement strategy registry for managing crawler strategies">
+      <option name="closed" value="true" />
+      <created>1762785211494</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1762785211494</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -178,6 +185,7 @@
     <MESSAGE value="fix: reduce Watchtower poll interval from 600 to 60 seconds in docker-compose" />
     <MESSAGE value="refactor: update method visibility to public in crawler controller" />
     <MESSAGE value="refactor: standardize formatting and improve type annotations in ConcorsiService and DimmiCosaCerchiStrategy" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor: standardize formatting and improve type annotations in ConcorsiService and DimmiCosaCerchiStrategy" />
+    <MESSAGE value="feat: implement strategy registry for managing crawler strategies" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: implement strategy registry for managing crawler strategies" />
   </component>
 </project>
