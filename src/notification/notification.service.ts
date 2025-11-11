@@ -12,37 +12,73 @@ export class NotificationService {
 
     constructor(
         private readonly configService: ConfigService,
-        private readonly telegramStrategy: TelegramNotificationStrategy,
     ) {
         this.buildStrategyList();
     }
 
     private buildStrategyList(): void {
-        const allStrategies: Record<string, INotificationStrategy> = {
-            'telegram': this.telegramStrategy,
-        };
-
-        const activeStrategyIds: string[] = (this.configService.get<string>('NOTIFICATION_STRATEGIES') || '')
+        const strategyIds: string[] = (this.configService.get<string>('NOTIFICATION_STRATEGIES') || '')
             .split(',')
             .map((s: string): string => s.trim().toLowerCase())
             .filter(Boolean);
 
-        for (const id of activeStrategyIds) {
-            const strategy: INotificationStrategy = allStrategies[id];
-            if (strategy) {
-                this.activeStrategies.push(strategy);
-                this.activeStrategiesMap.set(id, strategy);
-            } else {
-                this.logger.warn(`Strategia di notifica "${id}" non riconosciuta.`);
+        if (strategyIds.length === 0) {
+            this.logger.warn('Nessuna strategia definita in NOTIFICATION_STRATEGIES. Notifiche disabilitate.');
+            return;
+        }
+
+        this.logger.log(`Inizializzazione strategie di notifica: ${strategyIds.join(', ')}`);
+
+        for (const id of strategyIds) {
+            const type: string = this.configService.get<string>(`${id.toUpperCase()}_TYPE`)?.toLowerCase();
+
+            if (!type) {
+                this.logger.warn(`Tipo non definito per la strategia "${id}" (manca ${id.toUpperCase()}_TYPE). Salto.`);
+                continue;
+            }
+
+            let strategy: INotificationStrategy = null;
+
+            try {
+                if (type === 'telegram') {
+                    strategy = this.buildTelegramStrategy(id);
+                } else {
+                    this.logger.warn(`Tipo di strategia "${type}" per ID "${id}" non riconosciuto.`);
+                }
+
+                if (strategy) {
+                    this.activeStrategies.push(strategy);
+                    this.activeStrategiesMap.set(id, strategy);
+                    this.logger.log(`Strategia [${id}] (tipo: ${type}) attivata.`);
+                } else {
+                    this.logger.warn(`Strategia [${id}] (tipo: ${type}) non attivata (configurazione mancante?).`);
+                }
+            } catch (error) {
+                this.logger.error(`Errore durante la creazione della strategia [${id}]: ${error.message}`, error.stack);
             }
         }
 
         if (this.activeStrategies.length === 0) {
-            this.logger.warn('Nessuna strategia di notifica attiva. Le notifiche sono disabilitate.');
+            this.logger.warn('Nessuna strategia di notifica è stata attivata con successo.');
         } else {
-            this.logger.log(`Strategie di notifica attive: ${activeStrategyIds.join(', ')}`);
+            this.logger.log(`Strategie attive totali: ${this.activeStrategies.length}`);
         }
     }
+
+    private buildTelegramStrategy(id: string): INotificationStrategy | null {
+        const token: string = this.configService.get<string>(`${id.toUpperCase()}_TOKEN`);
+        const chatId: string = this.configService.get<string>(`${id.toUpperCase()}_CHAT_ID`);
+
+        if (!token || !chatId) {
+            this.logger.warn(`Configurazione (TOKEN o CHAT_ID) mancante per la strategia Telegram [${id}].`);
+            return null;
+        }
+
+        const strategyLogger = new Logger(`${TelegramNotificationStrategy.name} [${id}]`);
+
+        return new TelegramNotificationStrategy(id, token, chatId, strategyLogger);
+    }
+
 
     async sendNotification(message: string, imageUrl?: string): Promise<void> {
         const payload: NotificationPayload = { message, imageUrl };
@@ -67,7 +103,7 @@ export class NotificationService {
         } else {
             this.logger.log(`Invio notifica ai canali target: ${channels.join(', ')}`);
             for (const channelId of channels) {
-                const strategy: INotificationStrategy = this.activeStrategiesMap.get(channelId);
+                const strategy: INotificationStrategy = this.activeStrategiesMap.get(channelId); // Qui avviene la magia
                 if (strategy) {
                     targetStrategies.push(strategy);
                 } else {

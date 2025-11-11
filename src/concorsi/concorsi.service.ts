@@ -83,8 +83,11 @@ export class ConcorsiService {
         if (entity.description !== newDesc) return true;
         if (entity.rulesUrl !== dto.rulesUrl) return true;
 
-        if (entity.startDate.getTime() !== dto.startDate.getTime()) return true;
-        if (entity.endDate.getTime() !== dto.endDate.getTime()) return true;
+        const entityStartDate = new Date(entity.startDate);
+        const entityEndDate = new Date(entity.endDate);
+
+        if (entityStartDate.getTime() !== dto.startDate.getTime()) return true;
+        if (entityEndDate.getTime() !== dto.endDate.getTime()) return true;
 
         const oldImages: string = JSON.stringify(entity.images || []);
         const newImages: string = JSON.stringify(dto.images || []);
