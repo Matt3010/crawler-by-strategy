@@ -45,6 +45,18 @@ export class CrawlerService implements OnModuleDestroy {
         await this.startCrawl([strategyId], true);
     }
 
+    @Cron(CronExpression.EVERY_DAY_AT_4AM)
+    public async runDimmiCosaTravelCerchiCron(): Promise<void> {
+        const strategyId = 'dimmicosacerchitravel';
+        this.logger.warn(`--- CRON JOB STARTED [${strategyId}] ---`);
+        const msg = `--- 🏁 CRON JOB STARTED (scheduled) [${strategyId}] ---`;
+        await this.logService.add(msg);
+
+        await this.logService.clear();
+
+        await this.startCrawl([strategyId], true);
+    }
+
     public async forceCrawl(): Promise<any> {
         this.logger.log('--- FORCE CRAWL (ALL) STARTED ---');
         const msg = '--- 🚀 FORCE CRAWL STARTED (manual, ALL) ---';
