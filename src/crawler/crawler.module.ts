@@ -2,7 +2,7 @@ import { Module, OnModuleDestroy, Inject } from '@nestjs/common';
 import { CrawlerService } from './crawler.service';
 import { CrawlerController } from './crawler.controller';
 import { ConcorsiModule } from '../concorsi/concorsi.module';
-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi-strategy.service';
+import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service';
 import { BullModule } from '@nestjs/bullmq';
 import { ScanWorker } from './scan.worker';
 import { SummaryWorker } from './summary.worker';
@@ -18,7 +18,7 @@ import {
 import { DetailWorker } from './detail.worker';
 import { StrategyRegistry } from './strategy.registry.service';
 import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
-import {DimmiCosaCerchiTravelStrategy} from "./strategies/dimmi-cosa-cerchi-travel-strategy.service";
+import {DimmiCosaCerchiTravelStrategy} from "./strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service";
 
 const strategyProviders = [
     DimmiCosaCerchiStrategy,

@@ -28,16 +28,16 @@ export class SummaryWorker extends WorkerHost {
 
     async process(job: Job<{ strategyId: string, isCron: boolean, totalChildren: number }>): Promise<void> {
         const { strategyId, isCron, totalChildren } = job.data;
-        const log: (message: string) => void = (message: string) => {
+        const log: (message: string) => void = (message: string): void => {
             this.logger.log(message);
             this.logService.add(message);
         }
 
         log(`[Job ${job.id}] Starting summary for [${strategyId}]...`);
 
-        const strategy: ICrawlerStrategy = this.registry.get(strategyId); // <-- Modificato
+        const strategy: ICrawlerStrategy | undefined = this.registry.get(strategyId);
         if (!strategy) {
-            const errorMsg = `❌ CRITICAL ERROR: Strategy [${strategyId}] not found in SummaryWorker. Unable to generate summary.`;
+            const errorMsg: string = `❌ CRITICAL ERROR: Strategy [${strategyId}] not found in SummaryWorker. Unable to generate summary.`;
             log(errorMsg);
             await this.notificationService.sendNotification(errorMsg);
             return;
@@ -47,17 +47,21 @@ export class SummaryWorker extends WorkerHost {
         const completedResults: DetailJobResult[] = Object.values(completedValues);
         const failedCount: number = totalChildren - completedResults.length;
 
-        const targetedNotification: TargetedNotification = strategy.formatSummary(
+        const targetedNotification: TargetedNotification | null = strategy.formatSummary(
             completedResults,
             totalChildren,
             failedCount,
             strategyId,
         );
 
-        log(targetedNotification.payload.message);
-        await this.notificationService.sendTargetedNotification(
-            targetedNotification
-        );
+        if (targetedNotification) {
+            log(targetedNotification.payload.message);
+            await this.notificationService.sendTargetedNotification(
+                targetedNotification
+            );
+        } else {
+            log(`[${strategyId}] Summary notification suppressed (no new/updated/failed items).`);
+        }
 
         if (isCron) {
             log(`[${strategyId}] has completed its part of the CRON job.`);
@@ -66,7 +70,7 @@ export class SummaryWorker extends WorkerHost {
 
     @OnWorkerEvent('failed')
     onFailed(job: Job, err: Error): void {
-        const logMsg = `❌ CRITICAL ERROR SummaryWorker: Job [${job.id}] failed: ${err.message}`;
+        const logMsg: string = `❌ CRITICAL ERROR SummaryWorker: Job [${job.id}] failed: ${err.message}`;
         this.logger.error(logMsg, err.stack);
         this.logService.add(logMsg);
         this.notificationService.sendNotification(logMsg);

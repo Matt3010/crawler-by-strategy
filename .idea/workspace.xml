@@ -4,8 +4,30 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: reduce MAX_PAGES_TO_SCRAPE for DimmiCosaCerchi and DimmiCosaCerchiTravel strategies">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: specify type for parts variable in Telegram strategy chat ID parsing">
+      <change afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/cerca-concorsi.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.agent.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.edit.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Changes.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Changes/shelved.patch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25,_09_10_[Changes]/shelved.patch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25__09_10__Changes_.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert_[Changes]/shelved.patch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert__Changes_.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/base-dimmi-cosa-cerchi.strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-travel-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/notification/notification.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -17,6 +39,11 @@
     <execution />
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -49,7 +76,7 @@
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SONARLINT_PRECOMMIT_ANALYSIS&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
     &quot;last_opened_file_path&quot;: &quot;A:/RepoProjects/cerca-concorsi&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -94,6 +121,7 @@
       <workItem from="1762247240035" duration="285000" />
       <workItem from="1762762225009" duration="5018000" />
       <workItem from="1762847350402" duration="1620000" />
+      <workItem from="1762892483720" duration="929000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -183,7 +211,23 @@
       <option name="project" value="LOCAL" />
       <updated>1762890650548</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="feat: enhance Telegram strategy to support message threads and group chats">
+      <option name="closed" value="true" />
+      <created>1762891440371</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1762891440371</updated>
+    </task>
+    <task id="LOCAL-00013" summary="feat: specify type for parts variable in Telegram strategy chat ID parsing">
+      <option name="closed" value="true" />
+      <created>1762891594678</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1762891594678</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -213,6 +257,8 @@
     <MESSAGE value="refactor: simplify public concorsi retrieval and enhance method structure in ConcorsiService" />
     <MESSAGE value="refactor: enhance notification strategy initialization and improve error handling in Telegram strategy" />
     <MESSAGE value="feat: reduce MAX_PAGES_TO_SCRAPE for DimmiCosaCerchi and DimmiCosaCerchiTravel strategies" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: reduce MAX_PAGES_TO_SCRAPE for DimmiCosaCerchi and DimmiCosaCerchiTravel strategies" />
+    <MESSAGE value="feat: enhance Telegram strategy to support message threads and group chats" />
+    <MESSAGE value="feat: specify type for parts variable in Telegram strategy chat ID parsing" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: specify type for parts variable in Telegram strategy chat ID parsing" />
   </component>
 </project>
