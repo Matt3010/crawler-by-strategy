@@ -18,9 +18,11 @@ import {
 import { DetailWorker } from './detail.worker';
 import { StrategyRegistry } from './strategy.registry.service';
 import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
+import {DimmiCosaCerchiTravelStrategy} from "./strategies/dimmi-cosa-cerchi-travel-strategy.service";
 
 const strategyProviders = [
     DimmiCosaCerchiStrategy,
+    DimmiCosaCerchiTravelStrategy
 ];
 
 const flowProducerProvider = {
@@ -54,7 +56,7 @@ const flowProducerProvider = {
         ...strategyProviders,
         {
             provide: CRAWLER_STRATEGIES_TOKEN,
-            useFactory: (...strategies: ICrawlerStrategy[]) => strategies,
+            useFactory: (...strategies: ICrawlerStrategy[]): ICrawlerStrategy[] => strategies,
             inject: strategyProviders,
         },
     ],
