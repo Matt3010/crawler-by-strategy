@@ -23,17 +23,17 @@ export class NotificationService {
             .filter(Boolean);
 
         if (strategyIds.length === 0) {
-            this.logger.warn('Nessuna strategia definita in NOTIFICATION_STRATEGIES. Notifiche disabilitate.');
+            this.logger.warn('No strategy defined in NOTIFICATION_STRATEGIES. Notifications are disabled.');
             return;
         }
 
-        this.logger.log(`Inizializzazione strategie di notifica: ${strategyIds.join(', ')}`);
+        this.logger.log(`Initializing notification strategies: ${strategyIds.join(', ')}`);
 
         for (const id of strategyIds) {
             const type: string = this.configService.get<string>(`${id.toUpperCase()}_TYPE`)?.toLowerCase();
 
             if (!type) {
-                this.logger.warn(`Tipo non definito per la strategia "${id}" (manca ${id.toUpperCase()}_TYPE). Salto.`);
+                this.logger.warn(`Type not defined for strategy "${id}" (missing ${id.toUpperCase()}_TYPE). Skipping.`);
                 continue;
             }
 
@@ -43,25 +43,25 @@ export class NotificationService {
                 if (type === 'telegram') {
                     strategy = this.buildTelegramStrategy(id);
                 } else {
-                    this.logger.warn(`Tipo di strategia "${type}" per ID "${id}" non riconosciuto.`);
+                    this.logger.warn(`Strategy type "${type}" for ID "${id}" not recognized.`);
                 }
 
                 if (strategy) {
                     this.activeStrategies.push(strategy);
                     this.activeStrategiesMap.set(id, strategy);
-                    this.logger.log(`Strategia [${id}] (tipo: ${type}) attivata.`);
+                    this.logger.log(`Strategy [${id}] (type: ${type}) activated.`);
                 } else {
-                    this.logger.warn(`Strategia [${id}] (tipo: ${type}) non attivata (configurazione mancante?).`);
+                    this.logger.warn(`Strategy [${id}] (type: ${type}) not activated (missing configuration?).`);
                 }
             } catch (error) {
-                this.logger.error(`Errore durante la creazione della strategia [${id}]: ${error.message}`, error.stack);
+                this.logger.error(`Error creating strategy [${id}]: ${error.message}`, error.stack);
             }
         }
 
         if (this.activeStrategies.length === 0) {
-            this.logger.warn('Nessuna strategia di notifica è stata attivata con successo.');
+            this.logger.warn('No notification strategy was successfully activated.');
         } else {
-            this.logger.log(`Strategie attive totali: ${this.activeStrategies.length}`);
+            this.logger.log(`Total active strategies: ${this.activeStrategies.length}`);
         }
     }
 
@@ -70,7 +70,7 @@ export class NotificationService {
         const chatId: string = this.configService.get<string>(`${id.toUpperCase()}_CHAT_ID`);
 
         if (!token || !chatId) {
-            this.logger.warn(`Configurazione (TOKEN o CHAT_ID) mancante per la strategia Telegram [${id}].`);
+            this.logger.warn(`Configuration (TOKEN or CHAT_ID) missing for Telegram strategy [${id}].`);
             return null;
         }
 
@@ -78,7 +78,6 @@ export class NotificationService {
 
         return new TelegramNotificationStrategy(id, token, chatId, strategyLogger);
     }
-
 
     async sendNotification(message: string, imageUrl?: string): Promise<void> {
         const payload: NotificationPayload = { message, imageUrl };
@@ -91,7 +90,7 @@ export class NotificationService {
 
     private async sendToChannels(payload: NotificationPayload, channels: string[] | null): Promise<void> {
         if (this.activeStrategies.length === 0) {
-            this.logger.debug(`Nessuna notifica inviata (strategie non attive): ${payload.message.substring(0, 50)}...`);
+            this.logger.debug(`No notification sent (no active strategies): ${payload.message.substring(0, 50)}...`);
             return;
         }
 
@@ -99,27 +98,27 @@ export class NotificationService {
 
         if (!channels || channels.length === 0) {
             targetStrategies = this.activeStrategies;
-            this.logger.log(`Invio notifica a tutti i ${targetStrategies.length} canali attivi.`);
+            this.logger.log(`Sending notification to all ${targetStrategies.length} active channels.`);
         } else {
-            this.logger.log(`Invio notifica ai canali target: ${channels.join(', ')}`);
+            this.logger.log(`Sending notification to targeted channels: ${channels.join(', ')}`);
             for (const channelId of channels) {
-                const strategy: INotificationStrategy = this.activeStrategiesMap.get(channelId); // Qui avviene la magia
+                const strategy: INotificationStrategy = this.activeStrategiesMap.get(channelId);
                 if (strategy) {
                     targetStrategies.push(strategy);
                 } else {
-                    this.logger.warn(`Canale di notifica "${channelId}" richiesto ma non trovato o non attivo.`);
+                    this.logger.warn(`Notification channel "${channelId}" requested but not found or inactive.`);
                 }
             }
         }
 
         if (targetStrategies.length === 0) {
-            this.logger.warn(`Nessuna strategia di notifica valida trovata per l'invio.`);
+            this.logger.warn('No valid notification strategy found for sending.');
             return;
         }
 
         const promises: Promise<void>[] = targetStrategies.map((strategy: INotificationStrategy): Promise<void> =>
             strategy.sendNotification(payload).catch((err: any): void => {
-                this.logger.error(`Fallimento strategia [${strategy.getStrategyId()}]: ${err.message}`, err.stack);
+                this.logger.error(`Strategy failure [${strategy.getStrategyId()}]: ${err.message}`, err.stack);
             })
         );
 

@@ -1,4 +1,4 @@
-import {  Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { INotificationStrategy } from './notification.strategy.interface';
 import { NotificationPayload } from '../notification.types';
 
@@ -17,10 +17,10 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         this.logger = logger || new Logger(`${TelegramNotificationStrategy.name} [${id}]`);
 
         if (!this.botToken || !this.chatId) {
-            this.logger.warn(`Token o ChatID non configurati. Strategia [${this.id}] disabilitata.`);
+            this.logger.warn(`Token or ChatID not configured. Strategy [${this.id}] disabled.`);
         } else {
             this.apiBaseUrl = `https://api.telegram.org/bot${this.botToken}`;
-            this.logger.log(`Strategia Telegram [${this.id}] configurata per il chat ID: ${this.chatId.substring(0, 4)}...`);
+            this.logger.log(`Telegram strategy [${this.id}] configured for chat ID: ${this.chatId.substring(0, 4)}...`);
         }
     }
 
@@ -30,7 +30,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
 
     async sendNotification(payload: NotificationPayload): Promise<void> {
         if (!this.apiBaseUrl) {
-            this.logger.debug(`Strategia Telegram [${this.id}] saltata (non configurata): ${payload.message.substring(0, 50)}...`);
+            this.logger.debug(`Telegram strategy [${this.id}] skipped (not configured): ${payload.message.substring(0, 50)}...`);
             return;
         }
 
@@ -38,7 +38,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
             try {
                 await this.sendPhotoWithCaption(payload.message, payload.imageUrl);
             } catch (error) {
-                this.logger.error(`Fallimento sendPhotoWithCaption [${this.id}]: ${error.message}. Fallback a sendMessage.`);
+                this.logger.error(`sendPhotoWithCaption failed [${this.id}]: ${error.message}. Falling back to sendMessage.`);
                 await this.sendMessage(payload.message);
             }
         } else {
@@ -50,7 +50,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         const sanitizedCaption: string = this.sanitize(caption);
 
         if (sanitizedCaption.length > this.MAX_CAPTION_LENGTH) {
-            this.logger.warn(`Didascalia > 1024 [${this.id}]. Invio foto e testo separati.`);
+            this.logger.warn(`Caption > 1024 [${this.id}]. Sending photo and text separately.`);
             await this.sendPhotoApi(photoUrl);
             await this.sendMessage(caption);
         } else {
@@ -68,7 +68,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         if (sanitizedMessage.length <= this.MAX_MESSAGE_LENGTH) {
             await this.sendMessageApi(sanitizedMessage);
         } else {
-            this.logger.warn(`Messaggio > 4096 [${this.id}], invio in più parti.`);
+            this.logger.warn(`Message > 4096 [${this.id}], sending in multiple parts.`);
             const chunks: string[] = this.splitMessage(sanitizedMessage, this.MAX_MESSAGE_LENGTH);
             for (const chunk of chunks) {
                 await this.sendMessageApi(chunk);
@@ -92,14 +92,14 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
 
             if (!response.ok) {
                 const errorData: any = await response.json();
-                this.logger.error(`Errore sendMessageApi [${this.id}]: ${response.status} - ${errorData.description}`);
+                this.logger.error(`sendMessageApi error [${this.id}]: ${response.status} - ${errorData.description}`);
                 if (errorData.description.includes('parse')) {
-                    this.logger.warn(`Invio Markdown fallito [${this.id}]. Riprovo con testo semplice.`);
+                    this.logger.warn(`Markdown sending failed [${this.id}]. Retrying with plain text.`);
                     await this.sendSimpleTextFallback(sanitizedMessage);
                 }
             }
         } catch (error) {
-            this.logger.error(`Errore fetch (sendMessageApi) [${this.id}]: ${error.message}`, error.stack);
+            this.logger.error(`Fetch error (sendMessageApi) [${this.id}]: ${error.message}`, error.stack);
         }
     }
 
@@ -120,9 +120,9 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         if (!response.ok) {
             const errorData = await response.json();
             if (caption && errorData.description.includes('parse')) {
-                this.logger.warn(`Parse didascalia fallito [${this.id}], gestito dal chiamante.`);
+                this.logger.warn(`Caption parse failed [${this.id}], handled by caller.`);
             }
-            this.logger.error(`Errore sendPhotoApi [${this.id}]: ${errorData.description}`);
+            this.logger.error(`sendPhotoApi error [${this.id}]: ${errorData.description}`);
             throw new Error(errorData.description);
         }
     }
@@ -140,7 +140,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
                 body: body,
             });
         } catch (e) {
-            this.logger.error(`Errore fetch API Telegram (Fallback) [${this.id}]: ${e.message}`);
+            this.logger.error(`Telegram API fetch error (Fallback) [${this.id}]: ${e.message}`);
         }
     }
 
