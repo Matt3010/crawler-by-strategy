@@ -269,12 +269,12 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
             return null;
         }
 
-        const summaryMessage: string = `*📊 Riepilogo Scansione: ${this.friendlyName}*\n\n` +
-            `✅ *Nuovi:* ${createdCount}\n` +
-            `🔄 *Aggiornati:* ${updatedCount}\n` +
-            `ℹ️ *Invariati:* ${unchangedCount}\n` +
-            `❌ *Falliti:* ${failedCount}\n\n` +
-            `*Totale processati:* ${totalChildren}`;
+        const summaryMessage: string = `*📊 Scan Summary: ${this.friendlyName}*\n\n` +
+            `✅ *New:* ${createdCount}\n` +
+            `🔄 *Updated:* ${updatedCount}\n` +
+            `ℹ️ *Unchanged:* ${unchangedCount}\n` +
+            `❌ *Failed:* ${failedCount}\n\n` +
+            `*Total processed:* ${totalChildren}`;
 
         const channelsKey: string = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
         const channelsConfig: string | undefined = this.configService.get<string>(channelsKey);
