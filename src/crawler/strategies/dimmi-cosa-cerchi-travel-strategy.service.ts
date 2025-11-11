@@ -32,7 +32,7 @@ export class DimmiCosaCerchiTravelStrategy implements ICrawlerStrategy {
 
     private readonly friendlyName: string = 'DimmiCosaCerchi Travel';
 
-    private readonly LIST_ITEM_SELECTOR: string = 'h2.entry-title a.p-url';
+    private readonly LIST_ITEM_SELECTOR: string = 'h3.entry-title a.p-url';
     private readonly LIST_NEXT_PAGE_SELECTOR: string = 'a.next.page-numbers';
     private readonly DETAIL_TITLE_SELECTOR: string = 'h1.s-title';
     private readonly DETAIL_DESCRIPTION_SELECTOR: string = '.entry-content p';
