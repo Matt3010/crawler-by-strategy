@@ -27,7 +27,7 @@ const parseDateString: (dateString: string) => (string | null) = (dateString: st
 @Injectable()
 export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
     private readonly logger: Logger = new Logger(DimmiCosaCerchiStrategy.name);
-    private readonly MAX_PAGES_TO_SCRAPE: number = 6;
+    private readonly MAX_PAGES_TO_SCRAPE: number = 3;
     private readonly proxyUrl: string;
 
     private readonly friendlyName: string = 'DimmiCosaCerchi';
