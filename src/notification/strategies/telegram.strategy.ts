@@ -25,7 +25,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
             this.apiBaseUrl = `https://api.telegram.org/bot${this.botToken}`;
 
             if (chatId.includes('_')) {
-                const parts = chatId.split('_');
+                const parts: string[] = chatId.split('_');
                 this.chatGroupId = parts[0];
                 this.messageThreadId = parts[1];
                 this.logger.log(`Telegram strategy [${this.id}] configured for Chat: ${this.chatGroupId}, Topic: ${this.messageThreadId}`);
