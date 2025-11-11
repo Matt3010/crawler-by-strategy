@@ -8,19 +8,32 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
     private readonly MAX_CAPTION_LENGTH: number = 1024;
     private readonly MAX_MESSAGE_LENGTH: number = 4096;
 
+    private readonly chatGroupId: string;
+    private readonly messageThreadId: string | undefined;
+
     constructor(
         private readonly id: string,
         private readonly botToken: string,
-        private readonly chatId: string,
+        chatId: string,
         logger?: Logger,
     ) {
         this.logger = logger || new Logger(`${TelegramNotificationStrategy.name} [${id}]`);
 
-        if (!this.botToken || !this.chatId) {
+        if (!this.botToken || !chatId) {
             this.logger.warn(`Token or ChatID not configured. Strategy [${this.id}] disabled.`);
         } else {
             this.apiBaseUrl = `https://api.telegram.org/bot${this.botToken}`;
-            this.logger.log(`Telegram strategy [${this.id}] configured for chat ID: ${this.chatId.substring(0, 4)}...`);
+
+            if (chatId.includes('_')) {
+                const parts = chatId.split('_');
+                this.chatGroupId = parts[0];
+                this.messageThreadId = parts[1];
+                this.logger.log(`Telegram strategy [${this.id}] configured for Chat: ${this.chatGroupId}, Topic: ${this.messageThreadId}`);
+            } else {
+                this.chatGroupId = chatId;
+                this.messageThreadId = undefined;
+                this.logger.log(`Telegram strategy [${this.id}] configured for Chat: ${this.chatGroupId.substring(0, 4)}... (no topic)`);
+            }
         }
     }
 
@@ -77,11 +90,17 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
     }
 
     private async sendMessageApi(sanitizedMessage: string): Promise<void> {
-        const body: string = JSON.stringify({
-            chat_id: this.chatId,
+        const payload: any = {
+            chat_id: this.chatGroupId,
             text: sanitizedMessage,
             parse_mode: 'MarkdownV2',
-        });
+        };
+
+        if (this.messageThreadId) {
+            payload.message_thread_id = this.messageThreadId;
+        }
+
+        const body: string = JSON.stringify(payload);
 
         try {
             const response: Response = await fetch(`${this.apiBaseUrl}/sendMessage`, {
@@ -104,12 +123,18 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
     }
 
     private async sendPhotoApi(photoUrl: string, caption?: string): Promise<void> {
-        const body: string = JSON.stringify({
-            chat_id: this.chatId,
+        const payload: any = {
+            chat_id: this.chatGroupId,
             photo: photoUrl,
             caption: caption,
             parse_mode: caption ? 'MarkdownV2' : undefined,
-        });
+        };
+
+        if (this.messageThreadId) {
+            payload.message_thread_id = this.messageThreadId;
+        }
+
+        const body: string = JSON.stringify(payload);
 
         const response: Response = await fetch(`${this.apiBaseUrl}/sendPhoto`, {
             method: 'POST',
@@ -129,10 +154,17 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
 
     private async sendSimpleTextFallback(message: string): Promise<void> {
         const simpleText: string = message.replaceAll(/\\([_*[\]()~`>#+\-=|{}.!])/g, '$1');
-        const body: string = JSON.stringify({
-            chat_id: this.chatId,
+
+        const payload: any = {
+            chat_id: this.chatGroupId,
             text: simpleText,
-        });
+        };
+
+        if (this.messageThreadId) {
+            payload.message_thread_id = this.messageThreadId;
+        }
+
+        const body: string = JSON.stringify(payload);
         try {
             await fetch(`${this.apiBaseUrl}/sendMessage`, {
                 method: 'POST',
