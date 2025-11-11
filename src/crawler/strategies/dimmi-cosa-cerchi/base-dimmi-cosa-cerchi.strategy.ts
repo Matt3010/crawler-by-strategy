@@ -1,14 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CrawlConcorsoDto } from 'src/concorsi/dto/crawl-concorso.dto';
-import { ICrawlerStrategy, ProcessResult } from './crawler.strategy.interface';
+import { ICrawlerStrategy, ProcessResult } from '../crawler.strategy.interface';
 import * as cheerio from 'cheerio';
-import {ConcorsiService, CrawlStatus} from 'src/concorsi/concorsi.service';
+import { ConcorsiService, CrawlStatus } from 'src/concorsi/concorsi.service';
 import { Concorso } from 'src/concorsi/entities/concorso.entity';
 import { TargetedNotification } from 'src/notification/notification.types';
-import {Cheerio, CheerioAPI} from "cheerio";
+import { CheerioAPI } from "cheerio";
 
-// Month mapping helper
 const monthMap: { [key: string]: string } = {
     'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06',
     'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12'
@@ -24,23 +23,27 @@ const parseDateString: (dateString: string) => (string | null) = (dateString: st
     return `${year}-${month}-${day}`;
 };
 
-@Injectable()
-export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
-    private readonly logger: Logger = new Logger(DimmiCosaCerchiStrategy.name);
-    private readonly MAX_PAGES_TO_SCRAPE: number = 3;
-    private readonly proxyUrl: string;
+export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
+    protected readonly logger: Logger;
+    protected readonly proxyUrl: string;
 
-    private readonly friendlyName: string = 'DimmiCosaCerchi';
+    // Proprietà astratte che le classi figlie DEVONO definire
+    abstract readonly friendlyName: string;
+    abstract readonly MAX_PAGES_TO_SCRAPE: number;
+    abstract readonly LIST_ITEM_SELECTOR: string;
+    abstract readonly LIST_NEXT_PAGE_SELECTOR: string;
+    abstract readonly DETAIL_TITLE_SELECTOR: string;
+    abstract readonly DETAIL_DESCRIPTION_SELECTOR: string;
+    abstract readonly DETAIL_CONTENT_SELECTOR: string;
+    abstract readonly DETAIL_RULES_LINK_SELECTOR: string;
+    abstract readonly DETAIL_IMAGE_SELECTOR_TWITTER: string;
+    abstract readonly DETAIL_IMAGE_SELECTOR_OG: string;
 
-    private readonly LIST_ITEM_SELECTOR: string = 'h2.entry-title a.p-url';
-    private readonly LIST_NEXT_PAGE_SELECTOR: string = 'a.next.page-numbers';
-    private readonly DETAIL_TITLE_SELECTOR: string = 'h1.s-title';
-    private readonly DETAIL_DESCRIPTION_SELECTOR: string = '.entry-content p';
-    private readonly DETAIL_CONTENT_SELECTOR: string = '.entry-content';
-    private readonly DETAIL_RULES_LINK_SELECTOR: string = '.entry-content a';
-    private readonly DETAIL_IMAGE_SELECTOR_TWITTER: string = 'meta[name="twitter:image"]';
-    private readonly DETAIL_IMAGE_SELECTOR_OG: string = 'meta[property="og:image"]';
+    // Metodi astratti dall'interfaccia
+    abstract getStrategyId(): string;
+    abstract getBaseUrl(): string;
 
+    // Proprietà comuni
     private readonly DATE_REGEX_RANGE: RegExp = /dal (\d+°? \w+ \d{4})\s+al\s+(\d+°? \w+ \d{4})/i;
     private readonly DATE_REGEX_DEADLINE: RegExp = /(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i;
 
@@ -49,37 +52,32 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
     }
 
     constructor(
-        private readonly configService: ConfigService,
-        private readonly concorsiService: ConcorsiService,
+        protected readonly configService: ConfigService,
+        protected readonly concorsiService: ConcorsiService,
     ) {
+        // Imposta il logger con il nome della classe concreta (figlia)
+        this.logger = new Logger(this.constructor.name);
+
         this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');
-        if (this.proxyUrl) {
-            this.logger.log(`Strategy configured to use Vercel proxy: ${this.proxyUrl}`);
-        } else {
+        if (!this.proxyUrl) {
             this.logger.error('!!! MY_PROXY_URL not set in .env. The scraper will fail. !!!');
         }
     }
 
-    getStrategyId(): string {
-        return 'dimmicosacerchi';
-    }
+    // --- Logica Condivisa ---
 
-    getBaseUrl(): string {
-        return 'https://www.dimmicosacerchi.it/concorsi-a-premi';
-    }
-
-    private async fetchHtml(targetUrl: string): Promise<string> {
+    protected async fetchHtml(targetUrl: string): Promise<string> {
         if (!this.proxyUrl) throw new Error('Proxy URL not configured.');
 
         const randomDelay: number = Math.floor(Math.random() * 2000) + 500;
         await this.delay(randomDelay);
-        const fetchUrl = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
+        const fetchUrl: string = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
 
         this.logger.log(`Fetching ${fetchUrl} (after ${randomDelay}ms delay)`);
 
         const response: Response = await fetch(fetchUrl);
         if (!response.ok) {
-            const message = `Proxy fetch failed with status ${response.status} for ${targetUrl}`;
+            const message: string = `Proxy fetch failed with status ${response.status} for ${targetUrl}`;
             this.logger.error(message);
             throw new Error(message);
         }
@@ -92,9 +90,9 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         }
     }
 
-    async runListing(log: (message: string) => void, baseUrl: string): Promise<string[]> {
+    public async runListing(log: (message: string) => void, baseUrl: string): Promise<string[]> {
         log(`[${this.getStrategyId()}] Starting list scan: ${baseUrl}`);
-        const allDetailLinks = new Set<string>();
+        const allDetailLinks: Set<string> = new Set<string>();
         let currentPageUrl: string | null = baseUrl;
         let pageCounter: number = 1;
 
@@ -106,7 +104,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
                 const linksOnThisPage: string[] = [];
 
                 $(this.LIST_ITEM_SELECTOR).each((_: number, el): void => {
-                    const href: string = $(el).attr('href');
+                    const href: string | undefined = $(el).attr('href');
                     if (href) linksOnThisPage.push(href);
                 });
 
@@ -118,7 +116,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
                 linksOnThisPage.forEach((link: string): Set<string> => allDetailLinks.add(link));
                 pageCounter++;
 
-                const nextButton: Cheerio<any>  = $(this.LIST_NEXT_PAGE_SELECTOR);
+                const nextButton = $(this.LIST_NEXT_PAGE_SELECTOR);
                 currentPageUrl = nextButton ? nextButton.attr('href') || null : null;
             }
 
@@ -130,11 +128,11 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         }
     }
 
-    private _extractDatesFromText(contentText: string): { startDate: Date, endDate: Date } {
+    protected _extractDatesFromText(contentText: string): { startDate: Date, endDate: Date } {
         let startDateStr: string | null = null;
         let endDateStr: string | null = null;
 
-        let match: RegExpExecArray = this.DATE_REGEX_RANGE.exec(contentText);
+        let match: RegExpExecArray | null = this.DATE_REGEX_RANGE.exec(contentText);
         if (match?.[1] && match[2]) {
             startDateStr = parseDateString(match[1]);
             endDateStr = parseDateString(match[2]);
@@ -147,7 +145,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         if (!startDateStr) startDateStr = today;
 
         if (!endDateStr) {
-            const fallbackEndDate = new Date();
+            const fallbackEndDate: Date = new Date();
             fallbackEndDate.setDate(fallbackEndDate.getDate() + 30);
             endDateStr = fallbackEndDate.toISOString().split('T')[0];
             this.logger.warn(`End date not found. Fallback set to +30 days: ${endDateStr}`);
@@ -159,15 +157,15 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         };
     }
 
-    async runDetail(link: string, log: (message: string) => void): Promise<Omit<CrawlConcorsoDto, 'brand'>> {
+    public async runDetail(link: string, log: (message: string) => void): Promise<Omit<CrawlConcorsoDto, 'brand'>> {
         const html: string = await this.fetchHtml(link);
         const $: CheerioAPI = cheerio.load(html);
 
         const title: string = $(this.DETAIL_TITLE_SELECTOR).text().trim() || 'Title not found';
         const description: string = $(this.DETAIL_DESCRIPTION_SELECTOR).first().text().trim() || '';
 
-        let rulesUrl: string | undefined = null;
-        $(this.DETAIL_RULES_LINK_SELECTOR).each((_, el) => {
+        let rulesUrl: string | undefined = undefined;
+        $(this.DETAIL_RULES_LINK_SELECTOR).each((_: number, el): (false | void) => {
             if ($(el).text().toLowerCase().includes('regolamento')) {
                 rulesUrl = $(el).attr('href');
                 return false;
@@ -177,7 +175,7 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         const contentText: string = $(this.DETAIL_CONTENT_SELECTOR).text() || '';
 
         const images: string[] = [];
-        const imageUrl: string =
+        const imageUrl: string | undefined =
             $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
             $(this.DETAIL_IMAGE_SELECTOR_OG).attr('content');
 
@@ -200,10 +198,57 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         };
     }
 
-    async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>): Promise<ProcessResult> {
+    protected _formatIndividualNotification(concorso: Concorso, status: CrawlStatus): TargetedNotification {
+        const isNew: boolean = status === 'created';
+        const emoji: string = isNew ? '✅' : '🔄';
+        const titlePrefix: string = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
+
+        const endDate: string = new Date(concorso.endDate).toLocaleDateString('it-IT', {
+            day: '2-digit', 'month': 'long', 'year': 'numeric'
+        });
+        const shortDesc: string = concorso.description.substring(0, 150).trimEnd() + '...';
+
+        const message: string = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
+            `_${shortDesc}_\n\n` +
+            `🗓️ *Scadenza:* ${endDate}\n\n` +
+            `[Vedi Dettagli](${concorso.source})\n` +
+            `[Leggi Regolamento](${concorso.rulesUrl})`;
+
+        const imageUrl: string | null = concorso.images?.[0] || null;
+
+        const channelsKey: string = `${this.getStrategyId().toUpperCase()}_NOTIFY_CHANNELS`;
+        const channelsConfig: string | undefined = this.configService.get<string>(channelsKey);
+        const targetChannels: string[] | null = channelsConfig ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean) : null;
+
+        return {
+            payload: {
+                message,
+                imageUrl,
+                disableNotification: true
+            },
+            channels: targetChannels
+        };
+    }
+
+    public async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>, log?: (message: string) => void): Promise<ProcessResult> {
         const dto: CrawlConcorsoDto = { ...detailData, brand: this.getStrategyId() };
         const result: { concorso: Concorso; status: CrawlStatus } = await this.concorsiService.createOrUpdateFromCrawl(dto);
-        return { status: result.status, entity: result.concorso };
+
+        let notification: TargetedNotification | null = null;
+
+        if (result.status === 'created' || result.status === 'updated') {
+            try {
+                notification = this._formatIndividualNotification(result.concorso, result.status);
+            } catch (e) {
+                (log || this.logger.log).call(this.logger, `Failed to format individual notification for ${result.concorso.title}: ${e.message}`);
+            }
+        }
+
+        return {
+            status: result.status,
+            entity: result.concorso,
+            individualNotification: notification
+        };
     }
 
     public formatSummary(
@@ -212,59 +257,42 @@ export class DimmiCosaCerchiStrategy implements ICrawlerStrategy {
         failedCount: number,
         strategyId: string,
     ): TargetedNotification {
-        const grouped: Record<string, Concorso[]> = { created: [], updated: [], unchanged: [] };
 
-        for (const result of results) {
-            const concorso = result.entity as Concorso;
-            grouped[result.status]?.push(concorso);
+        const createdCount: number = results.filter((r: ProcessResult): boolean => r.status === 'created').length;
+        const updatedCount: number = results.filter((r: ProcessResult): boolean => r.status === 'updated').length;
+        const unchangedCount: number = results.filter((r: ProcessResult): boolean => r.status === 'unchanged').length;
+
+        const shouldNotify: boolean = createdCount > 0 || updatedCount > 0 || failedCount > 0;
+
+        if (!shouldNotify && unchangedCount > 0) {
+            this.logger.log(`[${strategyId}] Summary suppressed: No new/updated/failed items.`);
+            return null;
         }
 
-        const heroImageUrl: string = grouped.created[0]?.images?.[0] ?? grouped.updated[0]?.images?.[0];
+        const summaryMessage: string = `*📊 Riepilogo Scansione: ${this.friendlyName}*\n\n` +
+            `✅ *Nuovi:* ${createdCount}\n` +
+            `🔄 *Aggiornati:* ${updatedCount}\n` +
+            `ℹ️ *Invariati:* ${unchangedCount}\n` +
+            `❌ *Falliti:* ${failedCount}\n\n` +
+            `*Totale processati:* ${totalChildren}`;
 
-        const buildSection: (items: Concorso[], emoji: string, title: string) => string = (items: Concorso[], emoji: string, title: string): string =>
-            items.length === 0
-                ? ''
-                : `${emoji} ${title} ${items.length}:\n` +
-                items
-                    .map((c: Concorso): string => {
-                        const shortDesc: string = c.description.substring(0, 80).trimEnd() + '...';
-                        return `${c.title}\n_${shortDesc}_\n[View Details](${c.source})\n[Read Rules](${c.rulesUrl})`;
-                    })
-                    .join('\n\n') + '\n\n';
-
-
-        let summaryMessage: string = `*Contest Updates from ${this.friendlyName}*\n\n`;
-        summaryMessage += buildSection(grouped.created, '✅', 'New Contests');
-        summaryMessage += buildSection(grouped.updated, '🔄', 'Updated Contests');
-
-        if (grouped.unchanged.length > 0) {
-            summaryMessage += `*ℹ️ ${grouped.unchanged.length} contests checked (no changes).*\n\n`;
-        }
-
-        if (!grouped.created.length && !grouped.updated.length && failedCount === 0) {
-            summaryMessage += `✅ No new updates. All contests are already synced!\n\n`;
-        }
-
-        if (failedCount > 0) {
-            summaryMessage += `*❌ WARNING: ${failedCount} (of ${totalChildren}) items failed to process.*\n(Check logs for details.)\n\n`;
-        }
-
-        summaryMessage += `*Final Summary:* ${grouped.created.length} new, ${grouped.updated.length} updated, ${grouped.unchanged.length} unchanged, ${failedCount} failed.`;
-
-        const channelsKey = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig: string = this.configService.get<string>(channelsKey);
-        const targetChannels: string[] = channelsConfig
+        const channelsKey: string = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
+        const channelsConfig: string | undefined = this.configService.get<string>(channelsKey);
+        const targetChannels: string[] | null = channelsConfig
             ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean)
             : null;
 
         this.logger.log(
-            `[${strategyId}] Summary for ${targetChannels?.length ? 'specific channels: ' + targetChannels.join(',') : 'ALL channels'}.`
+            `[${strategyId}] Summary STATS for ${targetChannels?.length ? 'specific channels: ' + targetChannels.join(',') : 'ALL channels'}.`
         );
 
         return {
-            payload: { message: summaryMessage, imageUrl: heroImageUrl },
+            payload: {
+                message: summaryMessage,
+                imageUrl: null,
+                disableNotification: !shouldNotify
+            },
             channels: targetChannels,
         };
     }
-
 }

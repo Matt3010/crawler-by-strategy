@@ -47,27 +47,29 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
             return;
         }
 
+        const disableNotification: boolean = payload.disableNotification === true;
+
         if (payload.imageUrl) {
             try {
-                await this.sendPhotoWithCaption(payload.message, payload.imageUrl);
+                await this.sendPhotoWithCaption(payload.message, payload.imageUrl, disableNotification);
             } catch (error) {
                 this.logger.error(`sendPhotoWithCaption failed [${this.id}]: ${error.message}. Falling back to sendMessage.`);
-                await this.sendMessage(payload.message);
+                await this.sendMessage(payload.message, disableNotification);
             }
         } else {
-            await this.sendMessage(payload.message);
+            await this.sendMessage(payload.message, disableNotification);
         }
     }
 
-    private async sendPhotoWithCaption(caption: string, photoUrl: string): Promise<void> {
+    private async sendPhotoWithCaption(caption: string, photoUrl: string, disableNotification: boolean): Promise<void> {
         const sanitizedCaption: string = this.sanitize(caption);
 
         if (sanitizedCaption.length > this.MAX_CAPTION_LENGTH) {
             this.logger.warn(`Caption > 1024 [${this.id}]. Sending photo and text separately.`);
-            await this.sendPhotoApi(photoUrl);
-            await this.sendMessage(caption);
+            await this.sendPhotoApi(photoUrl, undefined, disableNotification);
+            await this.sendMessage(caption, disableNotification);
         } else {
-            await this.sendPhotoApi(photoUrl, sanitizedCaption);
+            await this.sendPhotoApi(photoUrl, sanitizedCaption, disableNotification);
         }
     }
 
@@ -75,25 +77,26 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         return message.replaceAll(/([_*[\]()~`>#+\-=|{}.!])/g, String.raw`\$1`);
     }
 
-    private async sendMessage(message: string): Promise<void> {
+    private async sendMessage(message: string, disableNotification: boolean): Promise<void> {
         const sanitizedMessage: string = this.sanitize(message);
 
         if (sanitizedMessage.length <= this.MAX_MESSAGE_LENGTH) {
-            await this.sendMessageApi(sanitizedMessage);
+            await this.sendMessageApi(sanitizedMessage, disableNotification);
         } else {
             this.logger.warn(`Message > 4096 [${this.id}], sending in multiple parts.`);
             const chunks: string[] = this.splitMessage(sanitizedMessage, this.MAX_MESSAGE_LENGTH);
             for (const chunk of chunks) {
-                await this.sendMessageApi(chunk);
+                await this.sendMessageApi(chunk, disableNotification);
             }
         }
     }
 
-    private async sendMessageApi(sanitizedMessage: string): Promise<void> {
+    private async sendMessageApi(sanitizedMessage: string, disableNotification: boolean): Promise<void> {
         const payload: any = {
             chat_id: this.chatGroupId,
             text: sanitizedMessage,
             parse_mode: 'MarkdownV2',
+            disable_notification: disableNotification,
         };
 
         if (this.messageThreadId) {
@@ -114,7 +117,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
                 this.logger.error(`sendMessageApi error [${this.id}]: ${response.status} - ${errorData.description}`);
                 if (errorData.description.includes('parse')) {
                     this.logger.warn(`Markdown sending failed [${this.id}]. Retrying with plain text.`);
-                    await this.sendSimpleTextFallback(sanitizedMessage);
+                    await this.sendSimpleTextFallback(sanitizedMessage, disableNotification);
                 }
             }
         } catch (error) {
@@ -122,12 +125,13 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         }
     }
 
-    private async sendPhotoApi(photoUrl: string, caption?: string): Promise<void> {
+    private async sendPhotoApi(photoUrl: string, caption?: string, disableNotification?: boolean): Promise<void> {
         const payload: any = {
             chat_id: this.chatGroupId,
             photo: photoUrl,
             caption: caption,
             parse_mode: caption ? 'MarkdownV2' : undefined,
+            disable_notification: disableNotification,
         };
 
         if (this.messageThreadId) {
@@ -143,7 +147,7 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData: any = await response.json();
             if (caption && errorData.description.includes('parse')) {
                 this.logger.warn(`Caption parse failed [${this.id}], handled by caller.`);
             }
@@ -152,12 +156,13 @@ export class TelegramNotificationStrategy implements INotificationStrategy {
         }
     }
 
-    private async sendSimpleTextFallback(message: string): Promise<void> {
+    private async sendSimpleTextFallback(message: string, disableNotification: boolean): Promise<void> {
         const simpleText: string = message.replaceAll(/\\([_*[\]()~`>#+\-=|{}.!])/g, '$1');
 
         const payload: any = {
             chat_id: this.chatGroupId,
             text: simpleText,
+            disable_notification: disableNotification,
         };
 
         if (this.messageThreadId) {
