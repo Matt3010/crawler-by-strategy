@@ -15,7 +15,8 @@ export class CrawlConcorsoDto {
 
   @Type((): DateConstructor => Date)
   @IsDate()
-  endDate: Date;
+  @IsOptional()
+  endDate: Date | null;
 
   @IsArray()
   @IsString({ each: true })

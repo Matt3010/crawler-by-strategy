@@ -128,7 +128,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         }
     }
 
-    protected _extractDatesFromText(contentText: string): { startDate: Date, endDate: Date } {
+    protected _extractDatesFromText(contentText: string): { startDate: Date, endDate: Date | null } {
         let startDateStr: string | null = null;
         let endDateStr: string | null = null;
 
@@ -145,15 +145,12 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         if (!startDateStr) startDateStr = today;
 
         if (!endDateStr) {
-            const fallbackEndDate: Date = new Date();
-            fallbackEndDate.setDate(fallbackEndDate.getDate() + 30);
-            endDateStr = fallbackEndDate.toISOString().split('T')[0];
-            this.logger.warn(`End date not found. Fallback set to +30 days: ${endDateStr}`);
+            this.logger.warn(`End date not found. Leaving as NULL.`);
         }
 
         return {
             startDate: new Date(startDateStr),
-            endDate: new Date(endDateStr),
+            endDate: endDateStr ? new Date(endDateStr) : null,
         };
     }
 
@@ -203,9 +200,10 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         const emoji: string = isNew ? '✅' : '🔄';
         const titlePrefix: string = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
 
-        const endDate: string = new Date(concorso.endDate).toLocaleDateString('it-IT', {
-            day: '2-digit', 'month': 'long', 'year': 'numeric'
-        });
+        const endDate: string = concorso.endDate
+            ? new Date(concorso.endDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' })
+            : 'Vedi Regolamento ⚠️';
+
         const shortDesc: string = concorso.description.substring(0, 150).trimEnd() + '...';
 
         const message: string = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
