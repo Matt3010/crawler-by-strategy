@@ -18,9 +18,10 @@ export class ConcorsiService {
         const query: SelectQueryBuilder<Concorso> =
             this.concorsiRepository.createQueryBuilder('concorso');
 
-        query.where('concorso.endDate >= :today', { today });
+        query.where('(concorso.endDate >= :today OR concorso.endDate IS NULL)', { today });
 
-        query.orderBy('concorso.endDate', 'ASC');
+        query.orderBy('concorso.endDate', 'ASC', 'NULLS LAST');
+
         return query.getMany();
     }
 
@@ -83,11 +84,13 @@ export class ConcorsiService {
         if (entity.description !== newDesc) return true;
         if (entity.rulesUrl !== dto.rulesUrl) return true;
 
-        const entityStartDate = new Date(entity.startDate);
-        const entityEndDate = new Date(entity.endDate);
+        const entityStart = entity.startDate ? new Date(entity.startDate).getTime() : null;
+        const dtoStart = dto.startDate ? new Date(dto.startDate).getTime() : null;
+        if (entityStart !== dtoStart) return true;
 
-        if (entityStartDate.getTime() !== dto.startDate.getTime()) return true;
-        if (entityEndDate.getTime() !== dto.endDate.getTime()) return true;
+        const entityEnd = entity.endDate ? new Date(entity.endDate).getTime() : null;
+        const dtoEnd = dto.endDate ? new Date(dto.endDate).getTime() : null;
+        if (entityEnd !== dtoEnd) return true;
 
         const oldImages: string = JSON.stringify(entity.images || []);
         const newImages: string = JSON.stringify(dto.images || []);

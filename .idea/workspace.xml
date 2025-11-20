@@ -4,31 +4,28 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="feat: specify type for parts variable in Telegram strategy chat ID parsing">
-      <change afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/cerca-concorsi.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.agent.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.edit.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/php.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Changes.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Changes/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25,_09_10_[Changes]/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_04_11_25__09_10__Changes_.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert_[Changes]/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_revert__Changes_.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
+    <list default="true" id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="changed way to define concorso without end date">
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/dto/crawl-vincita.dto.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/entities/vincita.entity.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/strategies/soldissimi-vincite.strategy.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/vincite.controller.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/vincite.module.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/activities/vincite/vincite.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/concorsi.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/concorsi.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/concorsi.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/concorsi.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/dto/crawl-concorso.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/dto/crawl-concorso.dto.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/concorsi/entities/concorso.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/entities/concorso.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/crawler.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/crawler.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/crawler.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/detail.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/detail.worker.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/crawler.strategy.interface.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/base-dimmi-cosa-cerchi.strategy.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi-travel-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/base-dimmi-cosa-cerchi.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/strategies/dimmi-cosa-cerchi/base-dimmi-cosa-cerchi.strategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/crawler/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/activities/concorsi/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/crawler/summary.worker.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/crawler/summary.worker.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/notification.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/notification.types.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/notification/strategies/telegram.strategy.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,12 +49,12 @@
     &quot;assignee&quot;: &quot;Matt3010&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Matt3010/cerca-concorsi.git&quot;,
-    &quot;accountId&quot;: &quot;24393440-9c3a-436d-9f63-67059e0ac78c&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Matt3010/crawler-by-strategy.git",
+    "accountId": "24393440-9c3a-436d-9f63-67059e0ac78c"
   }
-}</component>
+}]]></component>
   <component name="PhpWorkspaceProjectConfiguration" interpreter_name="A:\php\php8.3\php.exe" />
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
@@ -70,27 +67,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SONARLINT_PRECOMMIT_ANALYSIS&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
-    &quot;last_opened_file_path&quot;: &quot;A:/RepoProjects/cerca-concorsi&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;npm.docker:deploy.executor&quot;: &quot;Run&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;A:\\RepoProjects\\cerca-concorsi\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SONARLINT_PRECOMMIT_ANALYSIS": "true",
+    "git-widget-placeholder": "develop",
+    "last_opened_file_path": "A:/RepoProjects/cerca-concorsi",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "npm.docker:deploy.executor": "Run",
+    "ts.external.directory.path": "/Users/matteoscanferla/Documents/repos/crawler-by-strategy/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="A:\RepoProjects\cerca-concorsi" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/activities/vincite/dto" />
+      <recent name="$PROJECT_DIR$/src/activities/concorsi/strategies" />
+      <recent name="$PROJECT_DIR$/src/activities" />
     </key>
   </component>
   <component name="RunManager">
@@ -110,6 +113,13 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.27397.92" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="1bb17387-c2c7-4f32-9695-c02627fa036d" name="Changes" comment="" />
@@ -122,6 +132,7 @@
       <workItem from="1762762225009" duration="5018000" />
       <workItem from="1762847350402" duration="1620000" />
       <workItem from="1762892483720" duration="929000" />
+      <workItem from="1763663634789" duration="3468000" />
     </task>
     <task id="LOCAL-00001" summary="added types where possible, any should be checked and changed with a specific type">
       <option name="closed" value="true" />
@@ -227,7 +238,15 @@
       <option name="project" value="LOCAL" />
       <updated>1762891594678</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="changed way to define concorso without end date">
+      <option name="closed" value="true" />
+      <created>1763664146333</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1763664146333</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -259,6 +278,7 @@
     <MESSAGE value="feat: reduce MAX_PAGES_TO_SCRAPE for DimmiCosaCerchi and DimmiCosaCerchiTravel strategies" />
     <MESSAGE value="feat: enhance Telegram strategy to support message threads and group chats" />
     <MESSAGE value="feat: specify type for parts variable in Telegram strategy chat ID parsing" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: specify type for parts variable in Telegram strategy chat ID parsing" />
+    <MESSAGE value="changed way to define concorso without end date" />
+    <option name="LAST_COMMIT_MESSAGE" value="changed way to define concorso without end date" />
   </component>
 </project>

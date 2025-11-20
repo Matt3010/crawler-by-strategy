@@ -1,12 +1,11 @@
-import {Injectable, Logger} from '@nestjs/common';
-import {OnWorkerEvent, Processor, WorkerHost} from '@nestjs/bullmq';
-import {Job} from 'bullmq';
-import {DETAIL_QUEUE_NAME} from './crawler.constants';
-import {LogService} from 'src/log/log.service';
-import {ICrawlerStrategy, ProcessResult,} from './strategies/crawler.strategy.interface';
-import {StrategyRegistry} from './strategy.registry.service';
-import {NotificationService} from 'src/notification/notification.service';
-import {CrawlConcorsoDto} from 'src/concorsi/dto/crawl-concorso.dto';
+import { Injectable, Logger } from '@nestjs/common';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
+import { DETAIL_QUEUE_NAME } from './crawler.constants';
+import { LogService } from 'src/log/log.service';
+import { ICrawlerStrategy, ProcessResult } from './strategies/crawler.strategy.interface';
+import { StrategyRegistry } from './strategy.registry.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 export type DetailJobResult = ProcessResult;
 
@@ -37,12 +36,12 @@ export class DetailWorker extends WorkerHost {
 
         log(`Starting detail scraping for [${strategyId}]: ${link}`);
 
-        const strategy: ICrawlerStrategy | undefined = this.registry.get(strategyId);
+        const strategy: ICrawlerStrategy = this.registry.get(strategyId);
         if (!strategy) {
             throw new Error(`[Job ${job.id}] Strategy "${strategyId}" not found.`);
         }
 
-        const detailData: Omit<CrawlConcorsoDto, 'brand'> = await strategy.runDetail(link, log);
+        const detailData = await strategy.runDetail(link, log);
         const result: ProcessResult = await strategy.processDetail(detailData, log);
 
         log(`Scraping completed: ${link} (Status: ${result.status})`);

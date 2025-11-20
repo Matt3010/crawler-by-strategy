@@ -1,5 +1,3 @@
-// crawler.service.ts
-
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -39,9 +37,7 @@ export class CrawlerService implements OnModuleDestroy {
         this.logger.warn(`--- CRON JOB STARTED [${strategyId}] ---`);
         const msg = `--- 🏁 CRON JOB STARTED (scheduled) [${strategyId}] ---`;
         await this.logService.add(msg);
-
         await this.logService.clear();
-
         await this.startCrawl([strategyId], true);
     }
 
@@ -51,9 +47,17 @@ export class CrawlerService implements OnModuleDestroy {
         this.logger.warn(`--- CRON JOB STARTED [${strategyId}] ---`);
         const msg = `--- 🏁 CRON JOB STARTED (scheduled) [${strategyId}] ---`;
         await this.logService.add(msg);
-
         await this.logService.clear();
+        await this.startCrawl([strategyId], true);
+    }
 
+    @Cron(CronExpression.EVERY_DAY_AT_10AM)
+    public async runSoldissimiVinciteCron(): Promise<void> {
+        const strategyId = 'soldissimi_vincite';
+        this.logger.warn(`--- CRON JOB STARTED [${strategyId}] ---`);
+        const msg = `--- 🏁 CRON JOB STARTED (scheduled) [${strategyId}] ---`;
+        await this.logService.add(msg);
+        await this.logService.clear();
         await this.startCrawl([strategyId], true);
     }
 
@@ -93,7 +97,6 @@ export class CrawlerService implements OnModuleDestroy {
     }
 
     private async startCrawl(strategyIds: string[], isCron: boolean): Promise<void> {
-
         if (strategyIds.length === 0) {
             const msg = '❌ ERROR: startCrawl called with no strategies to start.';
             this.logger.warn(msg);
@@ -111,11 +114,7 @@ export class CrawlerService implements OnModuleDestroy {
         await this.summaryQueue.clean(0, 5000, 'delayed');
         await this.summaryQueue.clean(0, 5000, 'active');
 
-        const jobs: {
-            name: string;
-            data: { strategyId: string; isCron: boolean };
-            opts: { jobId: string; removeOnComplete: boolean; removeOnFail: number };
-        }[] = strategyIds.map((id: string) => ({
+        const jobs = strategyIds.map((id: string) => ({
             name: 'scan-strategy',
             data: { strategyId: id, isCron },
             opts: { jobId: `scan-${id}`, removeOnComplete: true, removeOnFail: 100 },
@@ -128,13 +127,12 @@ export class CrawlerService implements OnModuleDestroy {
 
         if (isCron) {
             this.logger.log('Waiting for dispatch completion (ScanJobs)...');
-
-            const results: PromiseSettledResult<unknown>[] = await Promise.allSettled(
-                createdJobs.map((job: Job): Promise<unknown> => job.waitUntilFinished(this.scanQueueEvents))
+            const results = await Promise.allSettled(
+                createdJobs.map((job: Job) => job.waitUntilFinished(this.scanQueueEvents))
             );
 
             let failedDispatches = 0;
-            results.forEach((r: PromiseSettledResult<unknown>, idx: number) => {
+            results.forEach((r: PromiseSettledResult<unknown>, idx: number): void => {
                 if (r.status === 'rejected') {
                     failedDispatches++;
                     this.logService.add(`❌ CRITICAL ERROR: Dispatch [${strategyIds[idx]}] failed: ${r.reason?.message}`);
