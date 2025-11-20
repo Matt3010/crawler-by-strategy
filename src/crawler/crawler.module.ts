@@ -1,8 +1,11 @@
 import { Module, OnModuleDestroy, Inject } from '@nestjs/common';
 import { CrawlerService } from './crawler.service';
 import { CrawlerController } from './crawler.controller';
-import { ConcorsiModule } from '../concorsi/concorsi.module';
-import { DimmiCosaCerchiStrategy } from './strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service';
+import { ConcorsiModule } from '../activities/concorsi/concorsi.module';
+import { VinciteModule } from '../activities/vincite/vincite.module';
+import { DimmiCosaCerchiStrategy } from '../activities/concorsi/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-strategy.service';
+import { DimmiCosaCerchiTravelStrategy } from "../activities/concorsi/strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service";
+import { SoldissimiVinciteStrategy } from '../activities/vincite/strategies/soldissimi-vincite.strategy';
 import { BullModule } from '@nestjs/bullmq';
 import { ScanWorker } from './scan.worker';
 import { SummaryWorker } from './summary.worker';
@@ -18,11 +21,11 @@ import {
 import { DetailWorker } from './detail.worker';
 import { StrategyRegistry } from './strategy.registry.service';
 import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
-import {DimmiCosaCerchiTravelStrategy} from "./strategies/dimmi-cosa-cerchi/dimmi-cosa-cerchi-travel-strategy.service";
 
 const strategyProviders = [
     DimmiCosaCerchiStrategy,
-    DimmiCosaCerchiTravelStrategy
+    DimmiCosaCerchiTravelStrategy,
+    SoldissimiVinciteStrategy
 ];
 
 const flowProducerProvider = {
@@ -40,6 +43,7 @@ const flowProducerProvider = {
 @Module({
     imports: [
         ConcorsiModule,
+        VinciteModule,
         BullModule.registerQueue(
             { name: SCAN_QUEUE_NAME },
             { name: DETAIL_QUEUE_NAME },

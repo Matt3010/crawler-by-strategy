@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConcorsiService } from 'src/concorsi/concorsi.service';
+import { ConcorsiService } from 'src/activities/concorsi/concorsi.service';
 import { BaseDimmiCosaCerchiStrategy } from './base-dimmi-cosa-cerchi.strategy';
 
 @Injectable()
-export class DimmiCosaCerchiStrategy extends BaseDimmiCosaCerchiStrategy {
-    readonly friendlyName: string = 'DimmiCosaCerchi';
-    readonly MAX_PAGES_TO_SCRAPE: number = 3;
-    readonly LIST_ITEM_SELECTOR: string = 'h2.entry-title a.p-url';
+export class DimmiCosaCerchiTravelStrategy extends BaseDimmiCosaCerchiStrategy {
+
+    readonly friendlyName: string = 'DimmiCosaCerchi Travel';
+    readonly MAX_PAGES_TO_SCRAPE: number = 1;
+    readonly LIST_ITEM_SELECTOR: string = 'h3.entry-title a.p-url';
     readonly LIST_NEXT_PAGE_SELECTOR: string = 'a.next.page-numbers';
     readonly DETAIL_TITLE_SELECTOR: string = 'h1.s-title';
     readonly DETAIL_DESCRIPTION_SELECTOR: string = '.entry-content p';
@@ -24,10 +25,10 @@ export class DimmiCosaCerchiStrategy extends BaseDimmiCosaCerchiStrategy {
     }
 
     getStrategyId(): string {
-        return 'dimmicosacerchi';
+        return 'dimmicosacerchitravel';
     }
 
     getBaseUrl(): string {
-        return 'https://www.dimmicosacerchi.it/concorsi-a-premi';
+        return 'https://www.dimmicosacerchi.it/tag/vinci-soggiorni';
     }
 }

@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CrawlConcorsoDto } from 'src/concorsi/dto/crawl-concorso.dto';
-import { ICrawlerStrategy, ProcessResult } from '../crawler.strategy.interface';
+import { CrawlConcorsoDto } from 'src/activities/concorsi/dto/crawl-concorso.dto';
+import { ICrawlerStrategy, ProcessResult } from '../../../../crawler/strategies/crawler.strategy.interface';
 import * as cheerio from 'cheerio';
-import { ConcorsiService, CrawlStatus } from 'src/concorsi/concorsi.service';
-import { Concorso } from 'src/concorsi/entities/concorso.entity';
+import { ConcorsiService } from 'src/activities/concorsi/concorsi.service';
+import { Concorso } from 'src/activities/concorsi/entities/concorso.entity';
 import { TargetedNotification } from 'src/notification/notification.types';
 import { CheerioAPI } from "cheerio";
 
@@ -23,11 +23,10 @@ const parseDateString: (dateString: string) => (string | null) = (dateString: st
     return `${year}-${month}-${day}`;
 };
 
-export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
+export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Concorso, Omit<CrawlConcorsoDto, 'brand'>> {
     protected readonly logger: Logger;
     protected readonly proxyUrl: string;
 
-    // Proprietà astratte che le classi figlie DEVONO definire
     abstract readonly friendlyName: string;
     abstract readonly MAX_PAGES_TO_SCRAPE: number;
     abstract readonly LIST_ITEM_SELECTOR: string;
@@ -39,32 +38,26 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
     abstract readonly DETAIL_IMAGE_SELECTOR_TWITTER: string;
     abstract readonly DETAIL_IMAGE_SELECTOR_OG: string;
 
-    // Metodi astratti dall'interfaccia
     abstract getStrategyId(): string;
     abstract getBaseUrl(): string;
 
-    // Proprietà comuni
     private readonly DATE_REGEX_RANGE: RegExp = /dal (\d+°? \w+ \d{4})\s+al\s+(\d+°? \w+ \d{4})/i;
     private readonly DATE_REGEX_DEADLINE: RegExp = /(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i;
 
     private delay(ms: number): Promise<void> {
-        return new Promise((resolve: (value: (PromiseLike<void> | void)) => void) => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     constructor(
         protected readonly configService: ConfigService,
         protected readonly concorsiService: ConcorsiService,
     ) {
-        // Imposta il logger con il nome della classe concreta (figlia)
         this.logger = new Logger(this.constructor.name);
-
         this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');
         if (!this.proxyUrl) {
             this.logger.error('!!! MY_PROXY_URL not set in .env. The scraper will fail. !!!');
         }
     }
-
-    // --- Logica Condivisa ---
 
     protected async fetchHtml(targetUrl: string): Promise<string> {
         if (!this.proxyUrl) throw new Error('Proxy URL not configured.');
@@ -77,17 +70,9 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
 
         const response: Response = await fetch(fetchUrl);
         if (!response.ok) {
-            const message: string = `Proxy fetch failed with status ${response.status} for ${targetUrl}`;
-            this.logger.error(message);
-            throw new Error(message);
+            throw new Error(`Proxy fetch failed with status ${response.status} for ${targetUrl}`);
         }
-
-        try {
-            return await response.text();
-        } catch (error) {
-            this.logger.error(`Error reading body: ${error instanceof Error ? error.message : String(error)}`);
-            throw error;
-        }
+        return await response.text();
     }
 
     public async runListing(log: (message: string) => void, baseUrl: string): Promise<string[]> {
@@ -98,29 +83,23 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
 
         try {
             while (currentPageUrl && pageCounter <= this.MAX_PAGES_TO_SCRAPE) {
-                log(`[${this.getStrategyId()}] Scanning list page: ${currentPageUrl} (Page ${pageCounter})`);
                 const html: string = await this.fetchHtml(currentPageUrl);
                 const $: CheerioAPI = cheerio.load(html);
                 const linksOnThisPage: string[] = [];
 
-                $(this.LIST_ITEM_SELECTOR).each((_: number, el): void => {
-                    const href: string | undefined = $(el).attr('href');
+                $(this.LIST_ITEM_SELECTOR).each((_, el) => {
+                    const href = $(el).attr('href');
                     if (href) linksOnThisPage.push(href);
                 });
 
-                if (linksOnThisPage.length === 0) {
-                    log(`[${this.getStrategyId()}] No links found on page ${pageCounter}. Stopping pagination.`);
-                    break;
-                }
+                if (linksOnThisPage.length === 0) break;
 
-                linksOnThisPage.forEach((link: string): Set<string> => allDetailLinks.add(link));
+                linksOnThisPage.forEach((link) => allDetailLinks.add(link));
                 pageCounter++;
 
                 const nextButton = $(this.LIST_NEXT_PAGE_SELECTOR);
                 currentPageUrl = nextButton ? nextButton.attr('href') || null : null;
             }
-
-            log(`[${this.getStrategyId()}] List scan complete. Found ${allDetailLinks.size} unique links.`);
             return Array.from(allDetailLinks);
         } catch (error) {
             log(`[${this.getStrategyId()}] ERROR in runListing: ${error.message}`);
@@ -132,7 +111,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         let startDateStr: string | null = null;
         let endDateStr: string | null = null;
 
-        let match: RegExpExecArray | null = this.DATE_REGEX_RANGE.exec(contentText);
+        let match = this.DATE_REGEX_RANGE.exec(contentText);
         if (match?.[1] && match[2]) {
             startDateStr = parseDateString(match[1]);
             endDateStr = parseDateString(match[2]);
@@ -141,12 +120,8 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
             if (match?.[2]) endDateStr = parseDateString(match[2]);
         }
 
-        const today: string = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
         if (!startDateStr) startDateStr = today;
-
-        if (!endDateStr) {
-            this.logger.warn(`End date not found. Leaving as NULL.`);
-        }
 
         return {
             startDate: new Date(startDateStr),
@@ -162,7 +137,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         const description: string = $(this.DETAIL_DESCRIPTION_SELECTOR).first().text().trim() || '';
 
         let rulesUrl: string | undefined = undefined;
-        $(this.DETAIL_RULES_LINK_SELECTOR).each((_: number, el): (false | void) => {
+        $(this.DETAIL_RULES_LINK_SELECTOR).each((_, el) => {
             if ($(el).text().toLowerCase().includes('regolamento')) {
                 rulesUrl = $(el).attr('href');
                 return false;
@@ -172,12 +147,11 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         const contentText: string = $(this.DETAIL_CONTENT_SELECTOR).text() || '';
 
         const images: string[] = [];
-        const imageUrl: string | undefined =
-            $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
+        const imageUrl = $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
             $(this.DETAIL_IMAGE_SELECTOR_OG).attr('content');
 
         if (imageUrl) {
-            const absoluteUrl: string = new URL(imageUrl, new URL(link).origin).href;
+            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
             images.push(absoluteUrl);
         }
 
@@ -195,50 +169,16 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         };
     }
 
-    protected _formatIndividualNotification(concorso: Concorso, status: CrawlStatus): TargetedNotification {
-        const isNew: boolean = status === 'created';
-        const emoji: string = isNew ? '✅' : '🔄';
-        const titlePrefix: string = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
-
-        const endDate: string = concorso.endDate
-            ? new Date(concorso.endDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' })
-            : 'Vedi Regolamento ⚠️';
-
-        const shortDesc: string = concorso.description.substring(0, 150).trimEnd() + '...';
-
-        const message: string = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
-            `_${shortDesc}_\n\n` +
-            `🗓️ *Scadenza:* ${endDate}\n\n` +
-            `[Vedi Dettagli](${concorso.source})\n` +
-            `[Leggi Regolamento](${concorso.rulesUrl})`;
-
-        const imageUrl: string | null = concorso.images?.[0] || null;
-
-        const channelsKey: string = `${this.getStrategyId().toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig: string | undefined = this.configService.get<string>(channelsKey);
-        const targetChannels: string[] | null = channelsConfig ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean) : null;
-
-        return {
-            payload: {
-                message,
-                imageUrl,
-                disableNotification: true
-            },
-            channels: targetChannels
-        };
-    }
-
-    public async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>, log?: (message: string) => void): Promise<ProcessResult> {
+    public async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>, log?: (message: string) => void): Promise<ProcessResult<Concorso>> {
         const dto: CrawlConcorsoDto = { ...detailData, brand: this.getStrategyId() };
-        const result: { concorso: Concorso; status: CrawlStatus } = await this.concorsiService.createOrUpdateFromCrawl(dto);
+        const result = await this.concorsiService.createOrUpdateFromCrawl(dto);
 
         let notification: TargetedNotification | null = null;
-
         if (result.status === 'created' || result.status === 'updated') {
             try {
                 notification = this._formatIndividualNotification(result.concorso, result.status);
             } catch (e) {
-                (log || this.logger.log).call(this.logger, `Failed to format individual notification for ${result.concorso.title}: ${e.message}`);
+                (log || this.logger.log).call(this.logger, `Failed to format notification: ${e.message}`);
             }
         }
 
@@ -249,40 +189,60 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy {
         };
     }
 
+    protected _formatIndividualNotification(concorso: Concorso, status: string): TargetedNotification {
+        const isNew = status === 'created';
+        const emoji = isNew ? '✅' : '🔄';
+        const titlePrefix = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
+
+        const endDate = concorso.endDate
+            ? new Date(concorso.endDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' })
+            : 'Vedi Regolamento ⚠️';
+
+        const shortDesc = concorso.description.substring(0, 150).trimEnd() + '...';
+
+        const message = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
+            `_${shortDesc}_\n\n` +
+            `🗓️ *Scadenza:* ${endDate}\n\n` +
+            `[Vedi Dettagli](${concorso.source})\n` +
+            `[Leggi Regolamento](${concorso.rulesUrl})`;
+
+        const channelsKey = `${this.getStrategyId().toUpperCase()}_NOTIFY_CHANNELS`;
+        const channelsConfig = this.configService.get<string>(channelsKey);
+        const targetChannels = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
+
+        return {
+            payload: {
+                message,
+                imageUrl: concorso.images?.[0] || null,
+                disableNotification: true
+            },
+            channels: targetChannels
+        };
+    }
+
     public formatSummary(
-        results: ProcessResult[],
+        results: ProcessResult<Concorso>[],
         totalChildren: number,
         failedCount: number,
         strategyId: string,
     ): TargetedNotification {
+        const createdCount = results.filter(r => r.status === 'created').length;
+        const updatedCount = results.filter(r => r.status === 'updated').length;
+        const unchangedCount = results.filter(r => r.status === 'unchanged').length;
 
-        const createdCount: number = results.filter((r: ProcessResult): boolean => r.status === 'created').length;
-        const updatedCount: number = results.filter((r: ProcessResult): boolean => r.status === 'updated').length;
-        const unchangedCount: number = results.filter((r: ProcessResult): boolean => r.status === 'unchanged').length;
+        const shouldNotify = createdCount > 0 || updatedCount > 0 || failedCount > 0;
+        if (!shouldNotify && unchangedCount > 0) return null;
 
-        const shouldNotify: boolean = createdCount > 0 || updatedCount > 0 || failedCount > 0;
-
-        if (!shouldNotify && unchangedCount > 0) {
-            this.logger.log(`[${strategyId}] Summary suppressed: No new/updated/failed items.`);
-            return null;
-        }
-
-        const summaryMessage: string = `*📊 Scan Summary: ${this.friendlyName}*\n\n` +
+        const summaryMessage = `*📊 Scan Summary: ${this.friendlyName}*\n\n` +
             `✅ *New:* ${createdCount}\n` +
             `🔄 *Updated:* ${updatedCount}\n` +
             `ℹ️ *Unchanged:* ${unchangedCount}\n` +
             `❌ *Failed:* ${failedCount}\n\n` +
             `*Total processed:* ${totalChildren}`;
 
-        const channelsKey: string = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig: string | undefined = this.configService.get<string>(channelsKey);
-        const targetChannels: string[] | null = channelsConfig
-            ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean)
-            : null;
-
-        this.logger.log(
-            `[${strategyId}] Summary STATS for ${targetChannels?.length ? 'specific channels: ' + targetChannels.join(',') : 'ALL channels'}.`
-        );
+        const channelsKey = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
+        const channelsConfig = this.configService.get<string>(channelsKey);
+        const targetChannels = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
 
         return {
             payload: {

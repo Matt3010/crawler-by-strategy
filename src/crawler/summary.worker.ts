@@ -11,7 +11,7 @@ import {
 import { TargetedNotification } from "../notification/notification.types";
 import { StrategyRegistry } from './strategy.registry.service';
 
-type DetailJobResult = ProcessResult;
+type DetailJobResult = ProcessResult<any>;
 
 @Processor(SUMMARY_QUEUE_NAME)
 @Injectable()
@@ -35,7 +35,7 @@ export class SummaryWorker extends WorkerHost {
 
         log(`[Job ${job.id}] Starting summary for [${strategyId}]...`);
 
-        const strategy: ICrawlerStrategy | undefined = this.registry.get(strategyId);
+        const strategy: ICrawlerStrategy = this.registry.get(strategyId);
         if (!strategy) {
             const errorMsg: string = `❌ CRITICAL ERROR: Strategy [${strategyId}] not found in SummaryWorker. Unable to generate summary.`;
             log(errorMsg);
