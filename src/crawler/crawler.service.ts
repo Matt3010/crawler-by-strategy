@@ -53,7 +53,7 @@ export class CrawlerService implements OnModuleDestroy {
 
     @Cron(CronExpression.EVERY_DAY_AT_10AM)
     public async runSoldissimiVinciteCron(): Promise<void> {
-        const strategyId = 'soldissimi_vincite';
+        const strategyId = 'soldissimivincite';
         this.logger.warn(`--- CRON JOB STARTED [${strategyId}] ---`);
         const msg = `--- 🏁 CRON JOB STARTED (scheduled) [${strategyId}] ---`;
         await this.logService.add(msg);
