@@ -24,8 +24,8 @@ export class VinciteService {
 
         if (!existing) {
             this.logger.log(`[${dto.sourceId}] Creating new vincita: ${dto.title}`);
-            const newEntity = this.vinciteRepository.create(dto);
-            const saved = await this.vinciteRepository.save(newEntity);
+            const newEntity: Vincita = this.vinciteRepository.create(dto);
+            const saved: Vincita = await this.vinciteRepository.save(newEntity);
             return { vincita: saved, status: 'created' };
         }
 
@@ -34,7 +34,7 @@ export class VinciteService {
             existing.title = dto.title;
             existing.content = dto.content ?? existing.content;
 
-            const updated = await this.vinciteRepository.save(existing);
+            const updated: Vincita = await this.vinciteRepository.save(existing);
             return { vincita: updated, status: 'updated' };
         }
 

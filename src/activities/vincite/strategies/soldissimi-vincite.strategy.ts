@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cheerio from 'cheerio';
-import { URL } from 'url';
 
 import { TargetedNotification } from 'src/notification/notification.types';
 import { CrawlVincitaDto } from '../dto/crawl-vincita.dto';
 import { ICrawlerStrategy, ProcessResult } from '../../../crawler/strategies/crawler.strategy.interface';
-import { VinciteService } from '../vincite.service';
+import {CrawlStatus, VinciteService} from '../vincite.service';
 import { Vincita } from '../entities/vincita.entity';
+import {CheerioAPI} from "cheerio";
 
 @Injectable()
 export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, CrawlVincitaDto> {
@@ -26,7 +26,7 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
     }
 
     getStrategyId(): string {
-        return 'soldissimi_vincite';
+        return 'soldissimivincite';
     }
 
     getBaseUrl(): string {
@@ -44,7 +44,7 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
         const fetchUrl = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
         this.logger.log(`Fetching Listing: ${targetUrl}`);
 
-        const response = await fetch(fetchUrl);
+        const response: Response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         return await response.text();
     }
@@ -53,32 +53,32 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
         log(`[${this.getStrategyId()}] Scan start: ${baseUrl}`);
         const allTopicLinks: Set<string> = new Set();
         let currentPageUrl: string | null = baseUrl;
-        let pageCounter = 1;
+        let pageCounter: number = 1;
 
         try {
             while (currentPageUrl && pageCounter <= this.MAX_PAGES) {
-                const html = await this.fetchHtml(currentPageUrl);
-                const $ = cheerio.load(html);
+                const html: string = await this.fetchHtml(currentPageUrl);
+                const $: CheerioAPI = cheerio.load(html);
 
                 const topicRows = $('tr.topic-item');
 
                 if (topicRows.length === 0) break;
 
-                topicRows.each((_, el) => {
+                topicRows.each((_: number, el): void => {
                     const row = $(el);
                     const linkEl = row.find('a.topic-title');
 
-                    const titleText = linkEl.text().trim();
+                    const titleText: string = linkEl.text().trim();
 
-                    const href = linkEl.attr('href');
+                    const href: string = linkEl.attr('href');
 
                     if (href && titleText) {
-                        const absoluteLink = href.startsWith('http') ? href : `https://www.soldissimi.it/forum/${href}`;
+                        const absoluteLink: string = href.startsWith('http') ? href : `https://www.soldissimi.it/forum/${href}`;
 
-                        const viewsText = row.find('.cell-count .views-count').text().trim();
-                        const views = viewsText.replace(/\D/g, '') || '0';
+                        const viewsText: string = row.find('.cell-count .views-count').text().trim();
+                        const views: string = viewsText.replaceAll(/\D/g, '') || '0';
 
-                        const winnerName = row.find('.topic-info a').first().text().trim() || 'Anonimo';
+                        const winnerName: string = row.find('.topic-info a').first().text().trim() || 'Anonimo';
 
                         const urlObj = new URL(absoluteLink);
                         urlObj.searchParams.set('meta_views', views);
@@ -105,17 +105,17 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
     public async runDetail(link: string, log: (message: string) => void): Promise<CrawlVincitaDto> {
         const urlObj = new URL(link);
 
-        const views = parseInt(urlObj.searchParams.get('meta_views') || '0', 10);
-        const winnerName = urlObj.searchParams.get('meta_winner') || 'Anonimo';
-        const title = urlObj.searchParams.get('meta_title') || 'Vincita senza titolo';
+        const views = Number.parseInt(urlObj.searchParams.get('meta_views') || '0', 10);
+        const winnerName: string = urlObj.searchParams.get('meta_winner') || 'Anonimo';
+        const title: string = urlObj.searchParams.get('meta_title') || 'Vincita senza titolo';
 
-        const source = link.split('?')[0];
+        const source: string = link.split('?')[0];
 
-        const idMatch = source.match(/\/(\d+)-/);
-        const sourceId = idMatch ? idMatch[1] : Buffer.from(source).toString('base64');
+        const idMatch: RegExpMatchArray = new RegExp(/\/(\d+)-/).exec(source);
+        const sourceId: string = idMatch ? idMatch[1] : Buffer.from(source).toString('base64');
 
         const wonAt = new Date();
-        const content = title;
+        const content: string = title;
 
         return {
             sourceId,
@@ -130,7 +130,7 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
     }
 
     public async processDetail(detailData: CrawlVincitaDto, log?: (message: string) => void): Promise<ProcessResult<Vincita>> {
-        const result = await this.vinciteService.createOrUpdateFromCrawl(detailData);
+        const result: { vincita: Vincita; status: CrawlStatus } = await this.vinciteService.createOrUpdateFromCrawl(detailData);
 
         let notification: TargetedNotification | null = null;
         if (result.status === 'created') {
