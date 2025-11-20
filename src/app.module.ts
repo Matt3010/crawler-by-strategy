@@ -8,6 +8,8 @@ import { Concorso } from './activities/concorsi/entities/concorso.entity';
 import { BullModule } from '@nestjs/bullmq';
 import { LogModule } from './log/log.module';
 import { NotificationModule } from './notification/notification.module';
+import {Vincita} from "./activities/vincite/entities/vincita.entity";
+import {VinciteModule} from "./activities/vincite/vincite.module";
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { NotificationModule } from './notification/notification.module';
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'password'),
         database: configService.get<string>('DB_NAME', 'concorsi_db'),
-        entities: [Concorso],
+        entities: [Concorso, Vincita],
         synchronize: true,
       }),
     }),
@@ -43,6 +45,7 @@ import { NotificationModule } from './notification/notification.module';
     LogModule,
     NotificationModule,
     ConcorsiModule,
+    VinciteModule,
     CrawlerModule,
   ],
   controllers: [],

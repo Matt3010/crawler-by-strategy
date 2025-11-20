@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cheerio from 'cheerio';
+import { CheerioAPI } from "cheerio";
 
 import { TargetedNotification } from 'src/notification/notification.types';
 import { CrawlVincitaDto } from '../dto/crawl-vincita.dto';
 import { ICrawlerStrategy, ProcessResult } from '../../../crawler/strategies/crawler.strategy.interface';
-import {CrawlStatus, VinciteService} from '../vincite.service';
+import { CrawlStatus, VinciteService } from '../vincite.service';
 import { Vincita } from '../entities/vincita.entity';
-import {CheerioAPI} from "cheerio";
 
 @Injectable()
 export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, CrawlVincitaDto> {
@@ -67,17 +67,13 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
                 topicRows.each((_: number, el): void => {
                     const row = $(el);
                     const linkEl = row.find('a.topic-title');
-
                     const titleText: string = linkEl.text().trim();
-
                     const href: string = linkEl.attr('href');
 
                     if (href && titleText) {
                         const absoluteLink: string = href.startsWith('http') ? href : `https://www.soldissimi.it/forum/${href}`;
-
                         const viewsText: string = row.find('.cell-count .views-count').text().trim();
                         const views: string = viewsText.replaceAll(/\D/g, '') || '0';
-
                         const winnerName: string = row.find('.topic-info a').first().text().trim() || 'Anonimo';
 
                         const urlObj = new URL(absoluteLink);
@@ -86,7 +82,6 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
                         urlObj.searchParams.set('meta_title', titleText);
 
                         allTopicLinks.add(urlObj.toString());
-
                         log(`Found: ${titleText} | Winner: ${winnerName}`);
                     }
                 });
@@ -108,7 +103,6 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
         const views = Number.parseInt(urlObj.searchParams.get('meta_views') || '0', 10);
         const winnerName: string = urlObj.searchParams.get('meta_winner') || 'Anonimo';
         const title: string = urlObj.searchParams.get('meta_title') || 'Vincita senza titolo';
-
         const source: string = link.split('?')[0];
 
         const idMatch: RegExpMatchArray = new RegExp(/\/(\d+)-/).exec(source);
@@ -131,46 +125,45 @@ export class SoldissimiVinciteStrategy implements ICrawlerStrategy<Vincita, Craw
 
     public async processDetail(detailData: CrawlVincitaDto, log?: (message: string) => void): Promise<ProcessResult<Vincita>> {
         const result: { vincita: Vincita; status: CrawlStatus } = await this.vinciteService.createOrUpdateFromCrawl(detailData);
-
-        let notification: TargetedNotification | null = null;
-        if (result.status === 'created') {
-            notification = this._formatNotification(result.vincita);
-        }
-
         return {
             status: result.status,
             entity: result.vincita,
-            individualNotification: notification
-        };
-    }
-
-    private _formatNotification(vincita: Vincita): TargetedNotification {
-        const msg = `*🏆 Nuova Vincita su ${this.friendlyName}!*\n\n` +
-            `👤 *Utente:* ${vincita.winnerName}\n` +
-            `🎁 *Premio:* ${vincita.title}\n` +
-            `👀 *Visite:* ${vincita.views}\n\n` +
-            `[Vedi Discussione](${vincita.source})`;
-
-        return {
-            payload: {
-                message: msg,
-                imageUrl: null,
-            },
-            channels: this.configService.get<string>('SOLDISSIMI_NOTIFY_CHANNELS')?.split(','),
+            individualNotification: null
         };
     }
 
     public formatSummary(results: ProcessResult<Vincita>[], totalChildren: number, failedCount: number, strategyId: string): TargetedNotification {
-        const created = results.filter((r: ProcessResult<Vincita>): boolean => r.status === 'created').length;
+        const createdResults = results.filter((r: ProcessResult<Vincita>): boolean => r.status === 'created');
 
-        if (created === 0 && failedCount === 0) return null;
+        if (createdResults.length === 0 && failedCount === 0) return null;
+
+        let message = `📊 *Report Vincite Soldissimi*\n\n`;
+
+        if (createdResults.length > 0) {
+            message += `✅ *Trovati ${createdResults.length} nuovi vincitori:*\n\n`;
+
+            createdResults.forEach((res) => {
+                const v = res.entity;
+                message += `👤 *${v.winnerName}*: ${v.title}\n🔗 [Vedi Discussione](${v.source})\n\n`;
+            });
+        } else {
+            message += `✅ Nessuna nuova vincita rilevata.\n`;
+        }
+
+        if (failedCount > 0) {
+            message += `\n❌ Errori durante la scansione: ${failedCount}`;
+        }
+
+        const channelsKey = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
+        const channelsConfig = this.configService.get<string>(channelsKey);
+        const targetChannels = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
 
         return {
             payload: {
-                message: `📊 *Report Vincite Soldissimi*\n\n✅ Nuove vincite: ${created}\n❌ Errori: ${failedCount}`,
+                message: message,
                 imageUrl: null
             },
-            channels: null
+            channels: targetChannels
         };
     }
 }
