@@ -107,17 +107,17 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
         }
     }
 
-    protected _extractDatesFromText(contentText: string): { startDate: Date, endDate: Date | null } {
+    protected _extractDatesFromText(contentText: string): { startDate: Date } {
         let startDateStr: string | null = null;
-        let endDateStr: string | null = null;
 
         let match = this.DATE_REGEX_RANGE.exec(contentText);
         if (match?.[1] && match[2]) {
             startDateStr = parseDateString(match[1]);
-            endDateStr = parseDateString(match[2]);
         } else {
             match = this.DATE_REGEX_DEADLINE.exec(contentText);
-            if (match?.[2]) endDateStr = parseDateString(match[2]);
+            if (match?.[2]) {
+                startDateStr = parseDateString(match[2]);
+            }
         }
 
         const today = new Date().toISOString().split('T')[0];
@@ -125,7 +125,6 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
 
         return {
             startDate: new Date(startDateStr),
-            endDate: endDateStr ? new Date(endDateStr) : null,
         };
     }
 
@@ -155,7 +154,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
             images.push(absoluteUrl);
         }
 
-        const { startDate, endDate } = this._extractDatesFromText(contentText);
+        const { startDate } = this._extractDatesFromText(contentText);
 
         return {
             title,
@@ -164,7 +163,6 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
             source: link,
             sourceId: new URL(link).pathname,
             startDate,
-            endDate,
             images,
         };
     }
@@ -194,15 +192,13 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
         const emoji = isNew ? '✅' : '🔄';
         const titlePrefix = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
 
-        const endDate = concorso.endDate
-            ? new Date(concorso.endDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' })
-            : 'Vedi Regolamento ⚠️';
+        const startDate = new Date(concorso.startDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' });
 
         const shortDesc = concorso.description.substring(0, 150).trimEnd() + '...';
 
         const message = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
             `_${shortDesc}_\n\n` +
-            `🗓️ *Scadenza:* ${endDate}\n\n` +
+            `🗓️ *Inizio:* ${startDate}\n\n` +
             `[Vedi Dettagli](${concorso.source})\n` +
             `[Leggi Regolamento](${concorso.rulesUrl})`;
 
