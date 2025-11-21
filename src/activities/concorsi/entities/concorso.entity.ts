@@ -26,10 +26,6 @@ export class Concorso {
     @Type((): DateConstructor => Date)
     startDate: Date;
 
-    @Column({ type: 'date', nullable: true })
-    @Type((): DateConstructor => Date)
-    endDate: Date | null;
-
     @Column({ type: 'varchar', length: 500 })
     rulesUrl: string;
 
