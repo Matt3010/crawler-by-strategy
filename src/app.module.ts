@@ -19,7 +19,16 @@ import {VinciteModule} from "./activities/vincite/vincite.module";
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService): {
+          type: "postgres";
+          host: string;
+          port: number;
+          username: string;
+          password: string;
+          database: string;
+          entities: any;
+          synchronize: true
+      } => ({
         type: 'postgres',
         host: configService.get<string>('DB_HOST', 'localhost'),
         port: configService.get<number>('DB_PORT', 5432),
@@ -34,7 +43,7 @@ import {VinciteModule} from "./activities/vincite/vincite.module";
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService): { connection: { host: string; port: number } } => ({
         connection: {
           host: configService.get<string>('REDIS_HOST', 'localhost'),
           port: configService.get<number>('REDIS_PORT', 6379),

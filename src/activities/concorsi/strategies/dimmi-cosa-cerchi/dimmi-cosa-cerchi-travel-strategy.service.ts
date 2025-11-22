@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ConcorsiService } from 'src/activities/concorsi/concorsi.service';
 import { BaseDimmiCosaCerchiStrategy } from './base-dimmi-cosa-cerchi.strategy';
+import {WebScraperClient} from "../../../../common/crawler/web-scraper.client";
 
 @Injectable()
 export class DimmiCosaCerchiTravelStrategy extends BaseDimmiCosaCerchiStrategy {
@@ -20,8 +21,9 @@ export class DimmiCosaCerchiTravelStrategy extends BaseDimmiCosaCerchiStrategy {
     constructor(
         protected readonly configService: ConfigService,
         protected readonly concorsiService: ConcorsiService,
+        protected readonly scraperClient: WebScraperClient,
     ) {
-        super(configService, concorsiService);
+        super(scraperClient, concorsiService, configService);
     }
 
     getStrategyId(): string {

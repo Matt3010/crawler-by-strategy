@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Job, Queue, QueueEvents } from 'bullmq';
+import { Job, QueueEvents } from 'bullmq';
 import { LogService } from 'src/log/log.service';
 import { NotificationService } from 'src/notification/notification.service';
-import { SCAN_QUEUE_NAME, SUMMARY_QUEUE_NAME } from './crawler.constants';
+import { SCAN_QUEUE_NAME } from './crawler.constants';
+import {CrawlerQueueClient} from "../common/crawler/crawler-queue.client";
 
 @Injectable()
 export class CrawlerService implements OnModuleDestroy {
@@ -13,11 +13,10 @@ export class CrawlerService implements OnModuleDestroy {
     private readonly scanQueueEvents: QueueEvents;
 
     public constructor(
-        @InjectQueue(SCAN_QUEUE_NAME) private readonly scanQueue: Queue,
-        @InjectQueue(SUMMARY_QUEUE_NAME) private readonly summaryQueue: Queue,
         private readonly configService: ConfigService,
         private readonly logService: LogService,
         private readonly notificationService: NotificationService,
+        private readonly queueClient: CrawlerQueueClient,
     ) {
         const connection = {
             host: configService.get<string>('REDIS_HOST', 'localhost'),
@@ -107,31 +106,21 @@ export class CrawlerService implements OnModuleDestroy {
             return;
         }
 
-        await this.scanQueue.clean(0, 5000, 'wait');
-        await this.scanQueue.clean(0, 5000, 'delayed');
-        await this.scanQueue.clean(0, 5000, 'active');
-        await this.summaryQueue.clean(0, 5000, 'wait');
-        await this.summaryQueue.clean(0, 5000, 'delayed');
-        await this.summaryQueue.clean(0, 5000, 'active');
+        await this.queueClient.cleanAllQueues();
 
-        const jobs = strategyIds.map((id: string) => ({
-            name: 'scan-strategy',
-            data: { strategyId: id, isCron },
-            opts: { jobId: `scan-${id}`, removeOnComplete: true, removeOnFail: 100 },
-        }));
+        const createdJobs: Job[] = await this.queueClient.dispatchScanJobs(strategyIds, isCron);
 
-        const createdJobs: Job[] = await this.scanQueue.addBulk(jobs);
-        const logMsg = `Added ${createdJobs.length} scan jobs (Flows) to the queue [${SCAN_QUEUE_NAME}]`;
+        const logMsg = `Added ${createdJobs.length} scan jobs to [${SCAN_QUEUE_NAME}]`;
         this.logger.log(logMsg);
         await this.logService.add(logMsg);
 
         if (isCron) {
             this.logger.log('Waiting for dispatch completion (ScanJobs)...');
-            const results = await Promise.allSettled(
-                createdJobs.map((job: Job) => job.waitUntilFinished(this.scanQueueEvents))
+            const results: PromiseSettledResult<any>[] = await Promise.allSettled(
+                createdJobs.map((job: Job): Promise<any> => job.waitUntilFinished(this.scanQueueEvents))
             );
 
-            let failedDispatches = 0;
+            let failedDispatches: number = 0;
             results.forEach((r: PromiseSettledResult<unknown>, idx: number): void => {
                 if (r.status === 'rejected') {
                     failedDispatches++;
