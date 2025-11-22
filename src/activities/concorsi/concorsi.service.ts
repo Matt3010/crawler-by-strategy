@@ -1,16 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Concorso } from './entities/concorso.entity';
 import { CrawlConcorsoDto } from './dto/crawl-concorso.dto';
-export type CrawlStatus = 'created' | 'updated' | 'unchanged';
+import {ActivitySyncClient, SyncResult} from "../../common/activities/activity-sync.client";
 
 @Injectable()
 export class ConcorsiService {
-    private readonly logger: Logger = new Logger(ConcorsiService.name);
     constructor(
         @InjectRepository(Concorso)
         private readonly concorsiRepository: Repository<Concorso>,
+        private readonly syncClient: ActivitySyncClient
     ) {}
 
     public async findAllPublic(): Promise<Concorso[]> {
@@ -24,52 +24,28 @@ export class ConcorsiService {
 
     public async createOrUpdateFromCrawl(
         dto: CrawlConcorsoDto,
-    ): Promise<{ concorso: Concorso; status: CrawlStatus }> {
-        const existingConcorso: Concorso = await this.concorsiRepository.findOne({
-            where: { sourceId: dto.sourceId },
-        });
-        const now = new Date();
+    ): Promise<SyncResult<Concorso>> {
+        return this.syncClient.syncEntity<Concorso, CrawlConcorsoDto>(
+            this.concorsiRepository,
+            dto,
+            'Concorso',
+            {
+                hasChanged: (entity: Concorso, dto: CrawlConcorsoDto): boolean => this.hasDataChanged(entity, dto),
 
-        if (!existingConcorso) {
-            return this.handleCreation(dto, now);
-        }
-
-        if (!this.hasDataChanged(existingConcorso, dto)) {
-            return { concorso: existingConcorso, status: 'unchanged' };
-        }
-
-        return this.handleUpdate(existingConcorso, dto, now);
-    }
-
-    private async handleCreation(
-        dto: CrawlConcorsoDto,
-        now: Date,
-    ): Promise<{ concorso: Concorso; status: 'created' }> {
-        const newConcorso: Concorso = this.concorsiRepository.create({
-            ...dto,
-            crawledAt: now,
-        });
-        const created: Concorso = await this.concorsiRepository.save(newConcorso);
-        return { concorso: created, status: 'created' };
-    }
-
-    private async handleUpdate(
-        concorso: Concorso,
-        dto: CrawlConcorsoDto,
-        now: Date,
-    ): Promise<{ concorso: Concorso; status: 'updated' }> {
-        this.logger.log(`[${dto.sourceId}] Found changes. Updating.`);
-
-        concorso.title = dto.title;
-        concorso.brand = dto.brand;
-        concorso.description = dto.description ?? concorso.description;
-        concorso.startDate = dto.startDate;
-        concorso.rulesUrl = dto.rulesUrl;
-        concorso.crawledAt = now;
-        concorso.images = dto.images;
-
-        const updated: Concorso = await this.concorsiRepository.save(concorso);
-        return { concorso: updated, status: 'updated' };
+                mapDtoToEntity: (dto: CrawlConcorsoDto, entity: Concorso): Concorso => ({
+                    ...entity,
+                    title: dto.title,
+                    brand: dto.brand,
+                    description: dto.description,
+                    startDate: dto.startDate,
+                    rulesUrl: dto.rulesUrl,
+                    images: dto.images,
+                    source: dto.source,
+                    sourceId: dto.sourceId,
+                    crawledAt: new Date()
+                })
+            }
+        );
     }
 
     private hasDataChanged(entity: Concorso, dto: CrawlConcorsoDto): boolean {
@@ -80,8 +56,8 @@ export class ConcorsiService {
         if (entity.description !== newDesc) return true;
         if (entity.rulesUrl !== dto.rulesUrl) return true;
 
-        const entityStart = entity.startDate ? new Date(entity.startDate).getTime() : null;
-        const dtoStart = dto.startDate ? new Date(dto.startDate).getTime() : null;
+        const entityStart: number = entity.startDate ? new Date(entity.startDate).getTime() : null;
+        const dtoStart: number = dto.startDate ? new Date(dto.startDate).getTime() : null;
         if (entityStart !== dtoStart) return true;
 
         const oldImages: string = JSON.stringify(entity.images || []);

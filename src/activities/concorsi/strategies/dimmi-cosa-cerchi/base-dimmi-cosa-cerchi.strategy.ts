@@ -7,6 +7,8 @@ import { ConcorsiService } from 'src/activities/concorsi/concorsi.service';
 import { Concorso } from 'src/activities/concorsi/entities/concorso.entity';
 import { TargetedNotification } from 'src/notification/notification.types';
 import { CheerioAPI } from "cheerio";
+import {WebScraperClient} from "../../../../common/crawler/web-scraper.client";
+import {SyncResult} from "../../../../common/activities/activity-sync.client";
 
 const monthMap: { [key: string]: string } = {
     'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06',
@@ -25,7 +27,6 @@ const parseDateString: (dateString: string) => (string | null) = (dateString: st
 
 export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Concorso, Omit<CrawlConcorsoDto, 'brand'>> {
     protected readonly logger: Logger;
-    protected readonly proxyUrl: string;
 
     abstract readonly friendlyName: string;
     abstract readonly MAX_PAGES_TO_SCRAPE: number;
@@ -44,36 +45,14 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
     private readonly DATE_REGEX_RANGE: RegExp = /dal (\d+°? \w+ \d{4})\s+al\s+(\d+°? \w+ \d{4})/i;
     private readonly DATE_REGEX_DEADLINE: RegExp = /(fino al|entro e non oltre il|entro il|scade il)\s+(\d+°? \w+ \d{4})/i;
 
-    private delay(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    constructor(
-        protected readonly configService: ConfigService,
+    protected constructor(
+        protected readonly scraperClient: WebScraperClient,
         protected readonly concorsiService: ConcorsiService,
+        protected readonly configService: ConfigService,
     ) {
         this.logger = new Logger(this.constructor.name);
-        this.proxyUrl = this.configService.get<string>('MY_PROXY_URL');
-        if (!this.proxyUrl) {
-            this.logger.error('!!! MY_PROXY_URL not set in .env. The scraper will fail. !!!');
-        }
     }
 
-    protected async fetchHtml(targetUrl: string): Promise<string> {
-        if (!this.proxyUrl) throw new Error('Proxy URL not configured.');
-
-        const randomDelay: number = Math.floor(Math.random() * 2000) + 500;
-        await this.delay(randomDelay);
-        const fetchUrl: string = `${this.proxyUrl}?url=${encodeURIComponent(targetUrl)}`;
-
-        this.logger.log(`Fetching ${fetchUrl} (after ${randomDelay}ms delay)`);
-
-        const response: Response = await fetch(fetchUrl);
-        if (!response.ok) {
-            throw new Error(`Proxy fetch failed with status ${response.status} for ${targetUrl}`);
-        }
-        return await response.text();
-    }
 
     public async runListing(log: (message: string) => void, baseUrl: string): Promise<string[]> {
         log(`[${this.getStrategyId()}] Starting list scan: ${baseUrl}`);
@@ -83,18 +62,19 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
 
         try {
             while (currentPageUrl && pageCounter <= this.MAX_PAGES_TO_SCRAPE) {
-                const html: string = await this.fetchHtml(currentPageUrl);
+                // Utilizzo del client
+                const html: string = await this.scraperClient.fetchHtml(currentPageUrl);
                 const $: CheerioAPI = cheerio.load(html);
                 const linksOnThisPage: string[] = [];
 
-                $(this.LIST_ITEM_SELECTOR).each((_, el) => {
+                $(this.LIST_ITEM_SELECTOR).each((_: number, el): void => {
                     const href = $(el).attr('href');
                     if (href) linksOnThisPage.push(href);
                 });
 
                 if (linksOnThisPage.length === 0) break;
 
-                linksOnThisPage.forEach((link) => allDetailLinks.add(link));
+                linksOnThisPage.forEach((link: string): Set<string> => allDetailLinks.add(link));
                 pageCounter++;
 
                 const nextButton = $(this.LIST_NEXT_PAGE_SELECTOR);
@@ -110,7 +90,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
     protected _extractDatesFromText(contentText: string): { startDate: Date } {
         let startDateStr: string | null = null;
 
-        let match = this.DATE_REGEX_RANGE.exec(contentText);
+        let match: RegExpExecArray = this.DATE_REGEX_RANGE.exec(contentText);
         if (match?.[1] && match[2]) {
             startDateStr = parseDateString(match[1]);
         } else {
@@ -120,7 +100,7 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
             }
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const today: string = new Date().toISOString().split('T')[0];
         if (!startDateStr) startDateStr = today;
 
         return {
@@ -128,15 +108,15 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
         };
     }
 
-    public async runDetail(link: string, log: (message: string) => void): Promise<Omit<CrawlConcorsoDto, 'brand'>> {
-        const html: string = await this.fetchHtml(link);
+    public async runDetail(link: string): Promise<Omit<CrawlConcorsoDto, 'brand'>> {
+        const html: string = await this.scraperClient.fetchHtml(link);
         const $: CheerioAPI = cheerio.load(html);
 
         const title: string = $(this.DETAIL_TITLE_SELECTOR).text().trim() || 'Title not found';
         const description: string = $(this.DETAIL_DESCRIPTION_SELECTOR).first().text().trim() || '';
 
         let rulesUrl: string | undefined = undefined;
-        $(this.DETAIL_RULES_LINK_SELECTOR).each((_, el) => {
+        $(this.DETAIL_RULES_LINK_SELECTOR).each((_: number, el): boolean => {
             if ($(el).text().toLowerCase().includes('regolamento')) {
                 rulesUrl = $(el).attr('href');
                 return false;
@@ -146,11 +126,11 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
         const contentText: string = $(this.DETAIL_CONTENT_SELECTOR).text() || '';
 
         const images: string[] = [];
-        const imageUrl = $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
+        const imageUrl: string = $(this.DETAIL_IMAGE_SELECTOR_TWITTER).attr('content') ||
             $(this.DETAIL_IMAGE_SELECTOR_OG).attr('content');
 
         if (imageUrl) {
-            const absoluteUrl = new URL(imageUrl, new URL(link).origin).href;
+            const absoluteUrl: string = new URL(imageUrl, new URL(link).origin).href;
             images.push(absoluteUrl);
         }
 
@@ -169,12 +149,12 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
 
     public async processDetail(detailData: Omit<CrawlConcorsoDto, 'brand'>, log?: (message: string) => void): Promise<ProcessResult<Concorso>> {
         const dto: CrawlConcorsoDto = { ...detailData, brand: this.getStrategyId() };
-        const result = await this.concorsiService.createOrUpdateFromCrawl(dto);
+        const result: SyncResult<Concorso> = await this.concorsiService.createOrUpdateFromCrawl(dto);
 
         let notification: TargetedNotification | null = null;
         if (result.status === 'created' || result.status === 'updated') {
             try {
-                notification = this._formatIndividualNotification(result.concorso, result.status);
+                notification = this._formatIndividualNotification(result.entity, result.status);
             } catch (e) {
                 (log || this.logger.log).call(this.logger, `Failed to format notification: ${e.message}`);
             }
@@ -182,29 +162,29 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
 
         return {
             status: result.status,
-            entity: result.concorso,
+            entity: result.entity,
             individualNotification: notification
         };
     }
 
     protected _formatIndividualNotification(concorso: Concorso, status: string): TargetedNotification {
-        const isNew = status === 'created';
-        const emoji = isNew ? '✅' : '🔄';
-        const titlePrefix = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
+        const isNew: boolean = status === 'created';
+        const emoji: string = isNew ? '✅' : '🔄';
+        const titlePrefix: string = isNew ? 'Nuovo Concorso' : 'Concorso Aggiornato';
 
-        const startDate = new Date(concorso.startDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' });
+        const startDate: string = new Date(concorso.startDate).toLocaleDateString('it-IT', { day: '2-digit', 'month': 'long', 'year': 'numeric' });
 
-        const shortDesc = concorso.description.substring(0, 150).trimEnd() + '...';
+        const shortDesc: string = concorso.description.substring(0, 150).trimEnd() + '...';
 
-        const message = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
+        const message: string = `*${emoji} ${titlePrefix}: ${concorso.title}*\n\n` +
             `_${shortDesc}_\n\n` +
             `🗓️ *Inizio:* ${startDate}\n\n` +
             `[Vedi Dettagli](${concorso.source})\n` +
             `[Leggi Regolamento](${concorso.rulesUrl})`;
 
         const channelsKey = `${this.getStrategyId().toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig = this.configService.get<string>(channelsKey);
-        const targetChannels = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
+        const channelsConfig: string = this.configService.get<string>(channelsKey);
+        const targetChannels: string[] = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
 
         return {
             payload: {
@@ -222,14 +202,14 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
         failedCount: number,
         strategyId: string,
     ): TargetedNotification {
-        const createdCount = results.filter(r => r.status === 'created').length;
-        const updatedCount = results.filter(r => r.status === 'updated').length;
-        const unchangedCount = results.filter(r => r.status === 'unchanged').length;
+        const createdCount: number = results.filter(r => r.status === 'created').length;
+        const updatedCount: number = results.filter(r => r.status === 'updated').length;
+        const unchangedCount: number = results.filter(r => r.status === 'unchanged').length;
 
-        const shouldNotify = createdCount > 0 || updatedCount > 0 || failedCount > 0;
+        const shouldNotify: boolean = createdCount > 0 || updatedCount > 0 || failedCount > 0;
         if (!shouldNotify && unchangedCount > 0) return null;
 
-        const summaryMessage = `*📊 Scan Summary: ${this.friendlyName}*\n\n` +
+        const summaryMessage: string = `*📊 Scan Summary: ${this.friendlyName}*\n\n` +
             `✅ *New:* ${createdCount}\n` +
             `🔄 *Updated:* ${updatedCount}\n` +
             `ℹ️ *Unchanged:* ${unchangedCount}\n` +
@@ -237,8 +217,8 @@ export abstract class BaseDimmiCosaCerchiStrategy implements ICrawlerStrategy<Co
             `*Total processed:* ${totalChildren}`;
 
         const channelsKey = `${strategyId.toUpperCase()}_NOTIFY_CHANNELS`;
-        const channelsConfig = this.configService.get<string>(channelsKey);
-        const targetChannels = channelsConfig ? channelsConfig.split(',').map(c => c.trim()).filter(Boolean) : null;
+        const channelsConfig: string = this.configService.get<string>(channelsKey);
+        const targetChannels: string[] = channelsConfig ? channelsConfig.split(',').map((c: string): string => c.trim()).filter(Boolean) : null;
 
         return {
             payload: {

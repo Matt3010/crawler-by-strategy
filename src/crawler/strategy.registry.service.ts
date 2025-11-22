@@ -19,7 +19,7 @@ export class StrategyRegistry implements OnModuleInit {
         }
 
         for (const strategy of this.strategyImplementations) {
-            const strategyId = strategy.getStrategyId();
+            const strategyId: string = strategy.getStrategyId();
             if (this.strategies.has(strategyId)) {
                 this.logger.warn(`Duplicate strategy ID found: ${strategyId}. Overwriting.`);
             }
@@ -29,7 +29,7 @@ export class StrategyRegistry implements OnModuleInit {
     }
 
     public get(strategyId: string): ICrawlerStrategy | undefined {
-        const strategy = this.strategies.get(strategyId);
+        const strategy: ICrawlerStrategy = this.strategies.get(strategyId);
         if (!strategy) {
             this.logger.error(`Strategy with ID "${strategyId}" not found in registry.`);
         }

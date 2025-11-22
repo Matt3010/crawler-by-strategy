@@ -1,12 +1,5 @@
-import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    Index,
-} from 'typeorm';
-import { Type } from 'class-transformer';
+import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn,} from 'typeorm';
+import {Type} from 'class-transformer';
 
 @Entity('vincite')
 export class Vincita {
@@ -15,12 +8,6 @@ export class Vincita {
 
     @Column({ type: 'varchar', length: 255 })
     title: string;
-
-    @Column({ type: 'varchar', length: 100, nullable: true })
-    winnerName: string;
-
-    @Column({ type: 'text', nullable: true })
-    content: string;
 
     @Column({ type: 'timestamp' })
     @Type((): DateConstructor => Date)
@@ -35,9 +22,6 @@ export class Vincita {
 
     @Column({ type: 'varchar', length: 50 })
     brand: string;
-
-    @Column({ type: 'int', default: 0 })
-    views: number;
 
     @CreateDateColumn()
     createdAt: Date;

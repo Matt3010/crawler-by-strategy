@@ -21,6 +21,7 @@ import {
 import { DetailWorker } from './detail.worker';
 import { StrategyRegistry } from './strategy.registry.service';
 import { ICrawlerStrategy } from './strategies/crawler.strategy.interface';
+import {CrawlerQueueClient} from "../common/crawler/crawler-queue.client";
 
 const strategyProviders = [
     DimmiCosaCerchiStrategy,
@@ -57,6 +58,7 @@ const flowProducerProvider = {
         SummaryWorker,
         flowProducerProvider,
         StrategyRegistry,
+        CrawlerQueueClient,
         ...strategyProviders,
         {
             provide: CRAWLER_STRATEGIES_TOKEN,
@@ -65,6 +67,7 @@ const flowProducerProvider = {
         },
     ],
     controllers: [CrawlerController],
+    exports: [CrawlerQueueClient],
 })
 export class CrawlerModule implements OnModuleDestroy {
     constructor(

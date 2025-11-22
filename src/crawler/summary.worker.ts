@@ -11,7 +11,7 @@ import {
 import { TargetedNotification } from "../notification/notification.types";
 import { StrategyRegistry } from './strategy.registry.service';
 
-type DetailJobResult = ProcessResult<any>;
+type DetailJobResult = ProcessResult;
 
 @Processor(SUMMARY_QUEUE_NAME)
 @Injectable()
